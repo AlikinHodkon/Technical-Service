@@ -19,7 +19,7 @@ export const createEquipment = async (req: Request, res: Response) => {
 };
 
 export const getAllEquipment = async (req: Request, res: Response) => {
-	const { status, type, sort, page, limit } = req.query as Record<
+	const { status, type, sort, page, limit } = req.valid.query as Record<
 		string,
 		string
 	>;

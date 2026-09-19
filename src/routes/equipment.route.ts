@@ -9,12 +9,17 @@ import {
 import { validate } from '../middlewares/index.ts';
 import {
 	createEquipmentSchema,
+	getEquipmentQuerySchema,
 	updateEquipmentSchema,
 } from '../validators/equipment.validator.ts';
 
 const router = Router();
 
-router.get('/equipment', getAllEquipment);
+router.get(
+	'/equipment',
+	validate({ query: getEquipmentQuerySchema }),
+	getAllEquipment,
+);
 router.post(
 	'/equipment',
 	validate({ body: createEquipmentSchema }),
