@@ -6,9 +6,12 @@ import {
 	equipmentServiceGetById,
 	equipmentServiceUpdate,
 } from '../services/equipmentService.ts';
+import type { EquipmentType } from '../types.ts';
 
 export const createEquipment = async (req: Request, res: Response) => {
-	const equipment = await equipmentServiceCreate(req.body);
+	const equipment = await equipmentServiceCreate(
+		req.valid.body as Omit<EquipmentType, 'id'>,
+	);
 	return res
 		.status(201)
 		.location(`/api/equipment/${equipment.id}`)
@@ -38,7 +41,7 @@ export const getEquipmentById = async (req: Request, res: Response) => {
 export const updateEquipment = async (req: Request, res: Response) => {
 	const equipment = await equipmentServiceUpdate(
 		req.params.id as string,
-		req.body,
+		req.valid.body as Partial<Omit<EquipmentType, 'id'>>,
 	);
 	return res.status(200).json(equipment);
 };

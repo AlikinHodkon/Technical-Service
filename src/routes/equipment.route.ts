@@ -6,13 +6,26 @@ import {
 	getEquipmentById,
 	updateEquipment,
 } from '../controllers/equipment.ts';
+import { validate } from '../middlewares/index.ts';
+import {
+	createEquipmentSchema,
+	updateEquipmentSchema,
+} from '../validators/equipment.validator.ts';
 
 const router = Router();
 
 router.get('/equipment', getAllEquipment);
-router.post('/equipment', createEquipment);
+router.post(
+	'/equipment',
+	validate({ body: createEquipmentSchema }),
+	createEquipment,
+);
 router.get('/equipment/:id', getEquipmentById);
-router.patch('/equipment/:id', updateEquipment);
+router.patch(
+	'/equipment/:id',
+	validate({ body: updateEquipmentSchema }),
+	updateEquipment,
+);
 router.delete('/equipment/:id', deleteEquipment);
 
 export default router;
