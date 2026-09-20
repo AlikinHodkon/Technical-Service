@@ -69,7 +69,10 @@ requestForm.addEventListener('submit', async (event) => {
 	try {
 		const response = await fetch('/api/requests', {
 			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
+			headers: {
+				'Content-Type': 'application/json',
+				'X-API-Key': formData.get('apiKey'),
+			},
 			body: JSON.stringify(payload),
 		});
 		const body = await response.json();

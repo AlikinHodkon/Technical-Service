@@ -8,7 +8,7 @@ import {
 	getEquipmentWeather,
 	updateEquipment,
 } from '../controllers/equipment.ts';
-import { validate } from '../middlewares/index.ts';
+import { apiKeyAuth, validate } from '../middlewares/index.ts';
 import { idParamSchema } from '../validators/common.validator.ts';
 import {
 	createEquipmentSchema,
@@ -26,6 +26,7 @@ router.get(
 );
 router.post(
 	'/equipment',
+	apiKeyAuth,
 	validate({ body: createEquipmentSchema }),
 	createEquipment,
 );
@@ -36,11 +37,13 @@ router.get(
 );
 router.patch(
 	'/equipment/:id',
+	apiKeyAuth,
 	validate({ params: idParamSchema, body: updateEquipmentSchema }),
 	updateEquipment,
 );
 router.delete(
 	'/equipment/:id',
+	apiKeyAuth,
 	validate({ params: idParamSchema }),
 	deleteEquipment,
 );
