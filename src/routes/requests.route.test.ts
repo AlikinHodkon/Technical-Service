@@ -84,6 +84,75 @@ describe('POST /api/requests', () => {
 	});
 });
 
+describe('POST /api/requests/bulk', () => {
+	it('returns 207 with a per-item report on a mixed batch', async () => {
+		const equipment = await createEquipment();
+
+		const response = await request(app)
+			.post('/api/requests/bulk')
+			.set('X-API-Key', API_KEY)
+			.send({
+				requests: [
+					{ ...baseRequest, equipmentId: equipment.body.id },
+					{ ...baseRequest, equipmentId: equipment.body.id, title: 'abc' },
+					{ ...baseRequest, equipmentId: crypto.randomUUID() },
+				],
+			});
+
+		expect(response.status).toBe(207);
+		expect(response.body.summary).toEqual({ total: 3, created: 1, failed: 2 });
+
+		expect(response.body.results[0]).toMatchObject({
+			index: 0,
+			status: 'created',
+		});
+		expect(response.body.results[1]).toMatchObject({
+			index: 1,
+			status: 'error',
+		});
+		expect(response.body.results[1].errors[0].field).toBe('title');
+		expect(response.body.results[2]).toMatchObject({
+			index: 2,
+			status: 'error',
+		});
+	});
+
+	it('persists the successfully created items', async () => {
+		const equipment = await createEquipment();
+
+		await request(app)
+			.post('/api/requests/bulk')
+			.set('X-API-Key', API_KEY)
+			.send({
+				requests: [{ ...baseRequest, equipmentId: equipment.body.id }],
+			});
+
+		const list = await request(app).get('/api/requests');
+		expect(list.body.total).toBe(1);
+	});
+
+	it('returns 422 when the requests array is empty', async () => {
+		const response = await request(app)
+			.post('/api/requests/bulk')
+			.set('X-API-Key', API_KEY)
+			.send({ requests: [] });
+
+		expect(response.status).toBe(422);
+	});
+
+	it('returns 401 without an API key', async () => {
+		const equipment = await createEquipment();
+
+		const response = await request(app)
+			.post('/api/requests/bulk')
+			.send({
+				requests: [{ ...baseRequest, equipmentId: equipment.body.id }],
+			});
+
+		expect(response.status).toBe(401);
+	});
+});
+
 describe('GET /api/requests', () => {
 	it('returns list with pagination metadata', async () => {
 		const equipment = await createEquipment();
