@@ -52,6 +52,15 @@ describe('POST /api/equipment', () => {
 
 		expect(response.status).toBe(409);
 	});
+
+	it('returns 400 when installedAt is in the future', async () => {
+		const response = await createEquipment({
+			installedAt: '2099-01-01T00:00:00.000Z',
+		});
+
+		expect(response.status).toBe(400);
+		expect(response.body.errors[0].field).toBe('installedAt');
+	});
 });
 
 describe('GET /api/equipment', () => {
@@ -71,6 +80,17 @@ describe('GET /api/equipment', () => {
 		expect(response.body.total).toBe(2);
 		expect(response.body.page).toBe(1);
 		expect(response.body.data).toHaveLength(2);
+	});
+
+	it('falls back to the default limit when limit is not a number', async () => {
+		await createEquipment();
+
+		const response = await request(app)
+			.get('/api/equipment')
+			.query({ limit: 'xyz' });
+
+		expect(response.status).toBe(200);
+		expect(response.body.limit).toBe(20);
 	});
 
 	it('filters by status', async () => {
