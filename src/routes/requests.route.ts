@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import {
+	bulkCreateRequests,
 	createRequest,
 	deleteRequest,
 	getAllRequests,
@@ -10,6 +11,7 @@ import {
 import { apiKeyAuth, validate } from '../middlewares/index.ts';
 import { idParamSchema } from '../validators/common.validator.ts';
 import {
+	bulkCreateRequestsSchema,
 	createRequestSchema,
 	getRequestsQuerySchema,
 	updateRequestSchema,
@@ -28,6 +30,12 @@ router.post(
 	apiKeyAuth,
 	validate({ body: createRequestSchema }),
 	createRequest,
+);
+router.post(
+	'/requests/bulk',
+	apiKeyAuth,
+	validate({ body: bulkCreateRequestsSchema }),
+	bulkCreateRequests,
 );
 router.get(
 	'/requests/:id',

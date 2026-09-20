@@ -22,6 +22,10 @@ export const updateRequestStatusSchema = z.object({
 	status: z.enum(STATUS_VALUES),
 });
 
+export const bulkCreateRequestsSchema = z.object({
+	requests: z.array(z.unknown()).min(1).max(100),
+});
+
 export const getRequestsQuerySchema = z.object({
 	status: z.enum(STATUS_VALUES).optional(),
 	priority: z.enum(PRIORITY_VALUES).optional(),
@@ -34,6 +38,7 @@ export const getRequestsQuerySchema = z.object({
 });
 
 export type CreateRequestBody = z.infer<typeof createRequestSchema>;
+export type BulkCreateRequestsBody = z.infer<typeof bulkCreateRequestsSchema>;
 export type UpdateRequestBody = z.infer<typeof updateRequestSchema>;
 export type UpdateRequestStatusBody = z.infer<typeof updateRequestStatusSchema>;
 export type GetRequestsQuery = z.infer<typeof getRequestsQuerySchema>;

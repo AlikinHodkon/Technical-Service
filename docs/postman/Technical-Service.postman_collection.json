@@ -9,6 +9,7 @@
 		{ "key": "equipmentId", "value": "" },
 		{ "key": "equipmentId2", "value": "" },
 		{ "key": "requestId", "value": "" },
+		{ "key": "bulkCreatedRequestId", "value": "" },
 		{ "key": "deletionEquipmentId", "value": "" },
 		{ "key": "deletionRequestId", "value": "" },
 		{ "key": "rateLimitAttempts", "value": "0" }
@@ -633,6 +634,127 @@
 							"script": {
 								"exec": [
 									"pm.test('status 404', () => pm.response.to.have.status(404));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /requests/bulk — mixed batch (207)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "X-API-Key", "value": "{{apiKey}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"requests\": [\n    { \"equipmentId\": \"{{equipmentId}}\", \"title\": \"Проверить крепление лопасти\", \"priority\": \"high\" },\n    { \"equipmentId\": \"{{equipmentId}}\", \"title\": \"АБ\", \"priority\": \"low\" },\n    { \"equipmentId\": \"00000000-0000-0000-0000-000000000000\", \"title\": \"Оборудование не существует\", \"priority\": \"low\" }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/requests/bulk",
+							"host": ["{{baseUrl}}"],
+							"path": ["requests", "bulk"]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 207', () => pm.response.to.have.status(207));",
+									"pm.test('per-item report matches summary', () => {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json.summary).to.eql({ total: 3, created: 1, failed: 2 });",
+									"    pm.expect(json.results[0].status).to.eql('created');",
+									"    pm.expect(json.results[1].status).to.eql('error');",
+									"    pm.expect(json.results[2].status).to.eql('error');",
+									"    pm.collectionVariables.set('bulkCreatedRequestId', json.results[0].data.id);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "PATCH /requests/:id/status — close request created by bulk import",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "X-API-Key", "value": "{{apiKey}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"rejected\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/requests/{{bulkCreatedRequestId}}/status",
+							"host": ["{{baseUrl}}"],
+							"path": ["requests", "{{bulkCreatedRequestId}}", "status"]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 200', () => pm.response.to.have.status(200));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /requests/bulk — empty array (422)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "X-API-Key", "value": "{{apiKey}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"requests\": []\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/requests/bulk",
+							"host": ["{{baseUrl}}"],
+							"path": ["requests", "bulk"]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 422', () => pm.response.to.have.status(422));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /requests/bulk — missing API key (401)",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"requests\": [\n    { \"equipmentId\": \"{{equipmentId}}\", \"title\": \"Проверить крепление лопасти\", \"priority\": \"high\" }\n  ]\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/requests/bulk",
+							"host": ["{{baseUrl}}"],
+							"path": ["requests", "bulk"]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 401', () => pm.response.to.have.status(401));"
 								]
 							}
 						}

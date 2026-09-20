@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import { AppError } from '../errors/error.ts';
 import {
 	requestsServiceCreate,
 	requestsServiceDelete,
@@ -7,12 +8,19 @@ import {
 	requestsServiceUpdate,
 	requestsServiceUpdateStatus,
 } from '../services/requestsService.ts';
-import type {
-	CreateRequestBody,
-	GetRequestsQuery,
-	UpdateRequestBody,
-	UpdateRequestStatusBody,
+import type { ErrorDetail, RequestType } from '../types.ts';
+import {
+	type BulkCreateRequestsBody,
+	type CreateRequestBody,
+	createRequestSchema,
+	type GetRequestsQuery,
+	type UpdateRequestBody,
+	type UpdateRequestStatusBody,
 } from '../validators/requests.validator.ts';
+
+type BulkImportResult =
+	| { index: number; status: 'created'; data: RequestType }
+	| { index: number; status: 'error'; errors: ErrorDetail[] };
 
 export const createRequest = async (req: Request, res: Response) => {
 	const requestItem = await requestsServiceCreate(
@@ -22,6 +30,51 @@ export const createRequest = async (req: Request, res: Response) => {
 		.status(201)
 		.location(`/api/requests/${requestItem.id}`)
 		.json(requestItem);
+};
+
+export const bulkCreateRequests = async (req: Request, res: Response) => {
+	const { requests: items } = req.valid.body as BulkCreateRequestsBody;
+
+	const results: BulkImportResult[] = [];
+	for (const [index, item] of items.entries()) {
+		const parsed = createRequestSchema.safeParse(item);
+		if (!parsed.success) {
+			results.push({
+				index,
+				status: 'error',
+				errors: parsed.error.issues.map((issue) => ({
+					field: issue.path.join('.') || '(корень)',
+					code: issue.code,
+					message: issue.message,
+				})),
+			});
+			continue;
+		}
+
+		try {
+			const created = await requestsServiceCreate(parsed.data);
+			results.push({ index, status: 'created', data: created });
+		} catch (error) {
+			if (!(error instanceof AppError)) throw error;
+			results.push({
+				index,
+				status: 'error',
+				errors: [
+					{ field: 'equipmentId', code: error.code, message: error.message },
+				],
+			});
+		}
+	}
+
+	const created = results.filter((r) => r.status === 'created').length;
+	return res.status(207).json({
+		results,
+		summary: {
+			total: items.length,
+			created,
+			failed: items.length - created,
+		},
+	});
 };
 
 export const getAllRequests = async (req: Request, res: Response) => {
