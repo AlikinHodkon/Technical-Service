@@ -1,3 +1,4 @@
+import path from 'node:path';
 import express from 'express';
 import helmet from 'helmet';
 import { NotFoundError } from './errors/error.ts';
@@ -20,6 +21,7 @@ app.use(httpLogger);
 app.use(contextMiddleware);
 app.use(helmet());
 app.use(corsMiddleware);
+app.use(express.static(path.join(import.meta.dirname, '..', 'public')));
 app.use('/api', rateLimiter);
 app.use(express.json({ limit: '100kb' }));
 
