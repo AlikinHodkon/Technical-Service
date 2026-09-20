@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import app from '../app.ts';
 
 const testStorageDir = path.join(process.cwd(), 'storage-test');
+const API_KEY = 'dev-api-key';
 
 const baseEquipment = {
 	name: 'Турбина №7',
@@ -24,6 +25,7 @@ const baseRequest = {
 const createEquipment = (overrides: Partial<typeof baseEquipment> = {}) =>
 	request(app)
 		.post('/api/equipment')
+		.set('X-API-Key', API_KEY)
 		.send({ ...baseEquipment, ...overrides });
 
 const createRequestFor = (
@@ -32,6 +34,7 @@ const createRequestFor = (
 ) =>
 	request(app)
 		.post('/api/requests')
+		.set('X-API-Key', API_KEY)
 		.send({ ...baseRequest, equipmentId, ...overrides });
 
 beforeEach(async () => {
@@ -68,6 +71,16 @@ describe('POST /api/requests', () => {
 		});
 
 		expect(response.status).toBe(422);
+	});
+
+	it('returns 401 without an API key', async () => {
+		const equipment = await createEquipment();
+
+		const response = await request(app)
+			.post('/api/requests')
+			.send({ ...baseRequest, equipmentId: equipment.body.id });
+
+		expect(response.status).toBe(401);
 	});
 });
 
@@ -133,6 +146,7 @@ describe('PATCH /api/requests/:id', () => {
 
 		const response = await request(app)
 			.patch(`/api/requests/${created.body.id}`)
+			.set('X-API-Key', API_KEY)
 			.send({ priority: 'critical' });
 
 		expect(response.status).toBe(200);
@@ -145,6 +159,7 @@ describe('PATCH /api/requests/:id', () => {
 
 		const response = await request(app)
 			.patch(`/api/requests/${created.body.id}`)
+			.set('X-API-Key', API_KEY)
 			.send({ status: 'done', priority: 'high' });
 
 		expect(response.status).toBe(200);
@@ -155,6 +170,7 @@ describe('PATCH /api/requests/:id', () => {
 	it('returns 404 for unknown id', async () => {
 		const response = await request(app)
 			.patch(`/api/requests/${crypto.randomUUID()}`)
+			.set('X-API-Key', API_KEY)
 			.send({ priority: 'high' });
 
 		expect(response.status).toBe(404);
@@ -163,9 +179,21 @@ describe('PATCH /api/requests/:id', () => {
 	it('returns 422 for a malformed id', async () => {
 		const response = await request(app)
 			.patch('/api/requests/unknown-id')
+			.set('X-API-Key', API_KEY)
 			.send({ priority: 'high' });
 
 		expect(response.status).toBe(422);
+	});
+
+	it('returns 401 without an API key', async () => {
+		const equipment = await createEquipment();
+		const created = await createRequestFor(equipment.body.id);
+
+		const response = await request(app)
+			.patch(`/api/requests/${created.body.id}`)
+			.send({ priority: 'high' });
+
+		expect(response.status).toBe(401);
 	});
 });
 
@@ -176,6 +204,7 @@ describe('PATCH /api/requests/:id/status', () => {
 
 		const response = await request(app)
 			.patch(`/api/requests/${created.body.id}/status`)
+			.set('X-API-Key', API_KEY)
 			.send({ status: 'in_progress' });
 
 		expect(response.status).toBe(200);
@@ -188,6 +217,7 @@ describe('PATCH /api/requests/:id/status', () => {
 
 		const response = await request(app)
 			.patch(`/api/requests/${created.body.id}/status`)
+			.set('X-API-Key', API_KEY)
 			.send({ status: 'done' });
 
 		expect(response.status).toBe(409);
@@ -198,10 +228,12 @@ describe('PATCH /api/requests/:id/status', () => {
 		const created = await createRequestFor(equipment.body.id);
 		await request(app)
 			.patch(`/api/requests/${created.body.id}/status`)
+			.set('X-API-Key', API_KEY)
 			.send({ status: 'rejected' });
 
 		const response = await request(app)
 			.patch(`/api/requests/${created.body.id}/status`)
+			.set('X-API-Key', API_KEY)
 			.send({ status: 'in_progress' });
 
 		expect(response.status).toBe(409);
@@ -210,6 +242,7 @@ describe('PATCH /api/requests/:id/status', () => {
 	it('returns 404 for unknown id', async () => {
 		const response = await request(app)
 			.patch(`/api/requests/${crypto.randomUUID()}/status`)
+			.set('X-API-Key', API_KEY)
 			.send({ status: 'in_progress' });
 
 		expect(response.status).toBe(404);
@@ -218,9 +251,21 @@ describe('PATCH /api/requests/:id/status', () => {
 	it('returns 422 for a malformed id', async () => {
 		const response = await request(app)
 			.patch('/api/requests/unknown-id/status')
+			.set('X-API-Key', API_KEY)
 			.send({ status: 'in_progress' });
 
 		expect(response.status).toBe(422);
+	});
+
+	it('returns 401 without an API key', async () => {
+		const equipment = await createEquipment();
+		const created = await createRequestFor(equipment.body.id);
+
+		const response = await request(app)
+			.patch(`/api/requests/${created.body.id}/status`)
+			.send({ status: 'in_progress' });
+
+		expect(response.status).toBe(401);
 	});
 });
 
@@ -229,9 +274,9 @@ describe('DELETE /api/requests/:id', () => {
 		const equipment = await createEquipment();
 		const created = await createRequestFor(equipment.body.id);
 
-		const response = await request(app).delete(
-			`/api/requests/${created.body.id}`,
-		);
+		const response = await request(app)
+			.delete(`/api/requests/${created.body.id}`)
+			.set('X-API-Key', API_KEY);
 		expect(response.status).toBe(204);
 
 		const getResponse = await request(app).get(
@@ -241,16 +286,29 @@ describe('DELETE /api/requests/:id', () => {
 	});
 
 	it('returns 404 for unknown id', async () => {
-		const response = await request(app).delete(
-			`/api/requests/${crypto.randomUUID()}`,
-		);
+		const response = await request(app)
+			.delete(`/api/requests/${crypto.randomUUID()}`)
+			.set('X-API-Key', API_KEY);
 
 		expect(response.status).toBe(404);
 	});
 
 	it('returns 422 for a malformed id', async () => {
-		const response = await request(app).delete('/api/requests/unknown-id');
+		const response = await request(app)
+			.delete('/api/requests/unknown-id')
+			.set('X-API-Key', API_KEY);
 
 		expect(response.status).toBe(422);
+	});
+
+	it('returns 401 without an API key', async () => {
+		const equipment = await createEquipment();
+		const created = await createRequestFor(equipment.body.id);
+
+		const response = await request(app).delete(
+			`/api/requests/${created.body.id}`,
+		);
+
+		expect(response.status).toBe(401);
 	});
 });

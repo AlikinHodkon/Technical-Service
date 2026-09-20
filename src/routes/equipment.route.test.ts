@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import app from '../app.ts';
 
 const testStorageDir = path.join(process.cwd(), 'storage-test');
+const API_KEY = 'dev-api-key';
 
 const baseEquipment = {
 	name: 'Турбина №7',
@@ -18,6 +19,7 @@ const baseEquipment = {
 const createEquipment = (overrides: Partial<typeof baseEquipment> = {}) =>
 	request(app)
 		.post('/api/equipment')
+		.set('X-API-Key', API_KEY)
 		.send({ ...baseEquipment, ...overrides });
 
 const writeRequests = async (requests: unknown[]) => {
@@ -60,6 +62,23 @@ describe('POST /api/equipment', () => {
 
 		expect(response.status).toBe(422);
 		expect(response.body.errors[0].field).toBe('installedAt');
+	});
+
+	it('returns 401 without an API key', async () => {
+		const response = await request(app)
+			.post('/api/equipment')
+			.send(baseEquipment);
+
+		expect(response.status).toBe(401);
+	});
+
+	it('returns 401 with a wrong API key', async () => {
+		const response = await request(app)
+			.post('/api/equipment')
+			.set('X-API-Key', 'wrong-key')
+			.send(baseEquipment);
+
+		expect(response.status).toBe(401);
 	});
 });
 
@@ -146,6 +165,7 @@ describe('PATCH /api/equipment/:id', () => {
 
 		const response = await request(app)
 			.patch(`/api/equipment/${created.body.id}`)
+			.set('X-API-Key', API_KEY)
 			.send({ status: 'maintenance' });
 
 		expect(response.status).toBe(200);
@@ -158,6 +178,7 @@ describe('PATCH /api/equipment/:id', () => {
 
 		const response = await request(app)
 			.patch(`/api/equipment/${created.body.id}`)
+			.set('X-API-Key', API_KEY)
 			.send({ id: 'hacked-id', status: 'maintenance' });
 
 		expect(response.status).toBe(200);
@@ -167,6 +188,7 @@ describe('PATCH /api/equipment/:id', () => {
 	it('returns 404 for unknown id', async () => {
 		const response = await request(app)
 			.patch(`/api/equipment/${crypto.randomUUID()}`)
+			.set('X-API-Key', API_KEY)
 			.send({ status: 'maintenance' });
 
 		expect(response.status).toBe(404);
@@ -175,6 +197,7 @@ describe('PATCH /api/equipment/:id', () => {
 	it('returns 422 for a malformed id', async () => {
 		const response = await request(app)
 			.patch('/api/equipment/unknown-id')
+			.set('X-API-Key', API_KEY)
 			.send({ status: 'maintenance' });
 
 		expect(response.status).toBe(422);
@@ -186,9 +209,20 @@ describe('PATCH /api/equipment/:id', () => {
 
 		const response = await request(app)
 			.patch(`/api/equipment/${second.body.id}`)
+			.set('X-API-Key', API_KEY)
 			.send({ serialNumber: 'WT-2024-0001' });
 
 		expect(response.status).toBe(409);
+	});
+
+	it('returns 401 without an API key', async () => {
+		const created = await createEquipment();
+
+		const response = await request(app)
+			.patch(`/api/equipment/${created.body.id}`)
+			.send({ status: 'maintenance' });
+
+		expect(response.status).toBe(401);
 	});
 });
 
@@ -196,9 +230,9 @@ describe('DELETE /api/equipment/:id', () => {
 	it('returns 204 and removes the equipment', async () => {
 		const created = await createEquipment();
 
-		const response = await request(app).delete(
-			`/api/equipment/${created.body.id}`,
-		);
+		const response = await request(app)
+			.delete(`/api/equipment/${created.body.id}`)
+			.set('X-API-Key', API_KEY);
 		expect(response.status).toBe(204);
 
 		const getResponse = await request(app).get(
@@ -208,15 +242,17 @@ describe('DELETE /api/equipment/:id', () => {
 	});
 
 	it('returns 404 for unknown id', async () => {
-		const response = await request(app).delete(
-			`/api/equipment/${crypto.randomUUID()}`,
-		);
+		const response = await request(app)
+			.delete(`/api/equipment/${crypto.randomUUID()}`)
+			.set('X-API-Key', API_KEY);
 
 		expect(response.status).toBe(404);
 	});
 
 	it('returns 422 for a malformed id', async () => {
-		const response = await request(app).delete('/api/equipment/unknown-id');
+		const response = await request(app)
+			.delete('/api/equipment/unknown-id')
+			.set('X-API-Key', API_KEY);
 
 		expect(response.status).toBe(422);
 	});
@@ -236,11 +272,21 @@ describe('DELETE /api/equipment/:id', () => {
 			},
 		]);
 
+		const response = await request(app)
+			.delete(`/api/equipment/${created.body.id}`)
+			.set('X-API-Key', API_KEY);
+
+		expect(response.status).toBe(409);
+	});
+
+	it('returns 401 without an API key', async () => {
+		const created = await createEquipment();
+
 		const response = await request(app).delete(
 			`/api/equipment/${created.body.id}`,
 		);
 
-		expect(response.status).toBe(409);
+		expect(response.status).toBe(401);
 	});
 });
 

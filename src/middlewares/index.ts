@@ -1,3 +1,4 @@
+export { apiKeyAuth } from './apiKeyAuth.ts';
 export { contextMiddleware } from './context.ts';
 export { corsMiddleware } from './cors.ts';
 export { errorHandler } from './errorHandler.ts';

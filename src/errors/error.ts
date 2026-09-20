@@ -56,6 +56,12 @@ export class ValidationError extends AppError {
 	}
 }
 
+export class UnauthorizedError extends AppError {
+	constructor(message = 'Неверный или отсутствующий API-ключ') {
+		super(message, { status: 401, code: 'unauthorized' });
+	}
+}
+
 export class ForbiddenError extends AppError {
 	constructor(message = 'Доступ запрещён') {
 		super(message, { status: 403, code: 'forbidden' });
