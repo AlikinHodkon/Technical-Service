@@ -8,7 +8,7 @@ export type RequestType = {
 	id: string; // (uuid, генерируется сервером)
 	equipmentId: string; // ссылка на существующее оборудование
 	title: string; // 5–120 символов, обязательное
-	description: string; // до 2000 символов
+	description?: string; // до 2000 символов, необязательное
 	priority: 'low' | 'medium' | 'high' | 'critical';
 	status: 'new' | 'in_progress' | 'done' | 'rejected'; // (по умолчанию new)
 	plannedAt?: string; // ISO-дата-время, необязательное
