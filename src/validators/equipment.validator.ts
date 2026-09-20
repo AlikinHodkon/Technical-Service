@@ -1,6 +1,9 @@
 import * as z from 'zod';
 
-export const createEquipmentSchema = z.object({
+const isNotInFuture = (isoDate: string) =>
+	new Date(isoDate).getTime() <= Date.now();
+
+const equipmentBaseSchema = z.object({
 	name: z.string().min(3).max(100),
 	type: z.enum(['turbine', 'inverter', 'sensor', 'substation']),
 	serialNumber: z.string(),
@@ -9,7 +12,20 @@ export const createEquipmentSchema = z.object({
 	installedAt: z.iso.datetime(),
 });
 
-export const updateEquipmentSchema = createEquipmentSchema.partial();
+export const createEquipmentSchema = equipmentBaseSchema.refine(
+	(data) => isNotInFuture(data.installedAt),
+	{ message: 'Дата установки не может быть в будущем', path: ['installedAt'] },
+);
+
+export const updateEquipmentSchema = equipmentBaseSchema
+	.partial()
+	.refine(
+		(data) => data.installedAt === undefined || isNotInFuture(data.installedAt),
+		{
+			message: 'Дата установки не может быть в будущем',
+			path: ['installedAt'],
+		},
+	);
 
 export const getEquipmentQuerySchema = z.object({
 	type: z.enum(['turbine', 'inverter', 'sensor', 'substation']).optional(),

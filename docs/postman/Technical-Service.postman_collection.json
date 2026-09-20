@@ -21,7 +21,11 @@
 					"request": {
 						"method": "GET",
 						"header": [],
-						"url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] }
+						"url": {
+							"raw": "{{baseUrl}}/health",
+							"host": ["{{baseUrl}}"],
+							"path": ["health"]
+						}
 					},
 					"event": [
 						{
@@ -52,7 +56,11 @@
 							"mode": "raw",
 							"raw": "{\n  \"name\": \"Турбина №1\",\n  \"type\": \"turbine\",\n  \"serialNumber\": \"WT-POSTMAN-0001\",\n  \"location\": { \"lat\": 55.75, \"lon\": 37.62 },\n  \"status\": \"operational\",\n  \"installedAt\": \"2024-01-01T00:00:00.000Z\"\n}"
 						},
-						"url": { "raw": "{{baseUrl}}/equipment", "host": ["{{baseUrl}}"], "path": ["equipment"] }
+						"url": {
+							"raw": "{{baseUrl}}/equipment",
+							"host": ["{{baseUrl}}"],
+							"path": ["equipment"]
+						}
 					},
 					"event": [
 						{
@@ -81,7 +89,11 @@
 							"mode": "raw",
 							"raw": "{\n  \"name\": \"Турбина-дубликат\",\n  \"type\": \"turbine\",\n  \"serialNumber\": \"WT-POSTMAN-0001\",\n  \"location\": { \"lat\": 55.75, \"lon\": 37.62 },\n  \"status\": \"operational\",\n  \"installedAt\": \"2024-01-01T00:00:00.000Z\"\n}"
 						},
-						"url": { "raw": "{{baseUrl}}/equipment", "host": ["{{baseUrl}}"], "path": ["equipment"] }
+						"url": {
+							"raw": "{{baseUrl}}/equipment",
+							"host": ["{{baseUrl}}"],
+							"path": ["equipment"]
+						}
 					},
 					"event": [
 						{
@@ -108,7 +120,11 @@
 							"mode": "raw",
 							"raw": "{\n  \"name\": \"АБ\",\n  \"type\": \"turbine\",\n  \"serialNumber\": \"WT-POSTMAN-0002\",\n  \"location\": { \"lat\": 55.75, \"lon\": 37.62 },\n  \"status\": \"operational\",\n  \"installedAt\": \"2024-01-01T00:00:00.000Z\"\n}"
 						},
-						"url": { "raw": "{{baseUrl}}/equipment", "host": ["{{baseUrl}}"], "path": ["equipment"] }
+						"url": {
+							"raw": "{{baseUrl}}/equipment",
+							"host": ["{{baseUrl}}"],
+							"path": ["equipment"]
+						}
 					},
 					"event": [
 						{
@@ -135,7 +151,10 @@
 							"raw": "{{baseUrl}}/equipment?page=1&limit=20",
 							"host": ["{{baseUrl}}"],
 							"path": ["equipment"],
-							"query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "20" }]
+							"query": [
+								{ "key": "page", "value": "1" },
+								{ "key": "limit", "value": "20" }
+							]
 						}
 					},
 					"event": [
@@ -186,7 +205,11 @@
 					"request": {
 						"method": "GET",
 						"header": [],
-						"url": { "raw": "{{baseUrl}}/equipment/{{equipmentId}}", "host": ["{{baseUrl}}"], "path": ["equipment", "{{equipmentId}}"] }
+						"url": {
+							"raw": "{{baseUrl}}/equipment/{{equipmentId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["equipment", "{{equipmentId}}"]
+						}
 					},
 					"event": [
 						{
@@ -208,7 +231,11 @@
 					"request": {
 						"method": "GET",
 						"header": [],
-						"url": { "raw": "{{baseUrl}}/equipment/unknown-id", "host": ["{{baseUrl}}"], "path": ["equipment", "unknown-id"] }
+						"url": {
+							"raw": "{{baseUrl}}/equipment/unknown-id",
+							"host": ["{{baseUrl}}"],
+							"path": ["equipment", "unknown-id"]
+						}
 					},
 					"event": [
 						{
@@ -230,8 +257,15 @@
 					"request": {
 						"method": "PATCH",
 						"header": [{ "key": "Content-Type", "value": "application/json" }],
-						"body": { "mode": "raw", "raw": "{\n  \"status\": \"maintenance\"\n}" },
-						"url": { "raw": "{{baseUrl}}/equipment/{{equipmentId}}", "host": ["{{baseUrl}}"], "path": ["equipment", "{{equipmentId}}"] }
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"maintenance\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/equipment/{{equipmentId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["equipment", "{{equipmentId}}"]
+						}
 					},
 					"event": [
 						{
@@ -255,10 +289,21 @@
 						"method": "PATCH",
 						"header": [{ "key": "Content-Type", "value": "application/json" }],
 						"body": { "mode": "raw", "raw": "{\n  \"status\": \"fault\"\n}" },
-						"url": { "raw": "{{baseUrl}}/equipment/unknown-id", "host": ["{{baseUrl}}"], "path": ["equipment", "unknown-id"] }
+						"url": {
+							"raw": "{{baseUrl}}/equipment/unknown-id",
+							"host": ["{{baseUrl}}"],
+							"path": ["equipment", "unknown-id"]
+						}
 					},
 					"event": [
-						{ "listen": "test", "script": { "exec": ["pm.test('status 404', () => pm.response.to.have.status(404));"] } }
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 404', () => pm.response.to.have.status(404));"
+								]
+							}
+						}
 					]
 				},
 				{
@@ -266,7 +311,11 @@
 					"request": {
 						"method": "GET",
 						"header": [],
-						"url": { "raw": "{{baseUrl}}/equipment/{{equipmentId}}/weather", "host": ["{{baseUrl}}"], "path": ["equipment", "{{equipmentId}}", "weather"] }
+						"url": {
+							"raw": "{{baseUrl}}/equipment/{{equipmentId}}/weather",
+							"host": ["{{baseUrl}}"],
+							"path": ["equipment", "{{equipmentId}}", "weather"]
+						}
 					},
 					"event": [
 						{
@@ -295,12 +344,18 @@
 							"name": "1. Create equipment for deletion test",
 							"request": {
 								"method": "POST",
-								"header": [{ "key": "Content-Type", "value": "application/json" }],
+								"header": [
+									{ "key": "Content-Type", "value": "application/json" }
+								],
 								"body": {
 									"mode": "raw",
 									"raw": "{\n  \"name\": \"Оборудование под удаление\",\n  \"type\": \"sensor\",\n  \"serialNumber\": \"WT-POSTMAN-DEL-0001\",\n  \"location\": { \"lat\": 50, \"lon\": 30 },\n  \"status\": \"operational\",\n  \"installedAt\": \"2024-01-01T00:00:00.000Z\"\n}"
 								},
-								"url": { "raw": "{{baseUrl}}/equipment", "host": ["{{baseUrl}}"], "path": ["equipment"] }
+								"url": {
+									"raw": "{{baseUrl}}/equipment",
+									"host": ["{{baseUrl}}"],
+									"path": ["equipment"]
+								}
 							},
 							"event": [
 								{
@@ -318,12 +373,18 @@
 							"name": "2. Create an open request for it",
 							"request": {
 								"method": "POST",
-								"header": [{ "key": "Content-Type", "value": "application/json" }],
+								"header": [
+									{ "key": "Content-Type", "value": "application/json" }
+								],
 								"body": {
 									"mode": "raw",
 									"raw": "{\n  \"equipmentId\": \"{{deletionEquipmentId}}\",\n  \"title\": \"Проверить перед списанием\",\n  \"priority\": \"low\"\n}"
 								},
-								"url": { "raw": "{{baseUrl}}/requests", "host": ["{{baseUrl}}"], "path": ["requests"] }
+								"url": {
+									"raw": "{{baseUrl}}/requests",
+									"host": ["{{baseUrl}}"],
+									"path": ["requests"]
+								}
 							},
 							"event": [
 								{
@@ -342,22 +403,49 @@
 							"request": {
 								"method": "DELETE",
 								"header": [],
-								"url": { "raw": "{{baseUrl}}/equipment/{{deletionEquipmentId}}", "host": ["{{baseUrl}}"], "path": ["equipment", "{{deletionEquipmentId}}"] }
+								"url": {
+									"raw": "{{baseUrl}}/equipment/{{deletionEquipmentId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["equipment", "{{deletionEquipmentId}}"]
+								}
 							},
 							"event": [
-								{ "listen": "test", "script": { "exec": ["pm.test('status 409', () => pm.response.to.have.status(409));"] } }
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test('status 409', () => pm.response.to.have.status(409));"
+										]
+									}
+								}
 							]
 						},
 						{
 							"name": "4. Close the request",
 							"request": {
 								"method": "PATCH",
-								"header": [{ "key": "Content-Type", "value": "application/json" }],
-								"body": { "mode": "raw", "raw": "{\n  \"status\": \"rejected\"\n}" },
-								"url": { "raw": "{{baseUrl}}/requests/{{deletionRequestId}}/status", "host": ["{{baseUrl}}"], "path": ["requests", "{{deletionRequestId}}", "status"] }
+								"header": [
+									{ "key": "Content-Type", "value": "application/json" }
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"status\": \"rejected\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/requests/{{deletionRequestId}}/status",
+									"host": ["{{baseUrl}}"],
+									"path": ["requests", "{{deletionRequestId}}", "status"]
+								}
 							},
 							"event": [
-								{ "listen": "test", "script": { "exec": ["pm.test('status 200', () => pm.response.to.have.status(200));"] } }
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test('status 200', () => pm.response.to.have.status(200));"
+										]
+									}
+								}
 							]
 						},
 						{
@@ -365,10 +453,21 @@
 							"request": {
 								"method": "DELETE",
 								"header": [],
-								"url": { "raw": "{{baseUrl}}/equipment/{{deletionEquipmentId}}", "host": ["{{baseUrl}}"], "path": ["equipment", "{{deletionEquipmentId}}"] }
+								"url": {
+									"raw": "{{baseUrl}}/equipment/{{deletionEquipmentId}}",
+									"host": ["{{baseUrl}}"],
+									"path": ["equipment", "{{deletionEquipmentId}}"]
+								}
 							},
 							"event": [
-								{ "listen": "test", "script": { "exec": ["pm.test('status 204', () => pm.response.to.have.status(204));"] } }
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test('status 204', () => pm.response.to.have.status(204));"
+										]
+									}
+								}
 							]
 						}
 					]
@@ -387,7 +486,11 @@
 							"mode": "raw",
 							"raw": "{\n  \"equipmentId\": \"{{equipmentId}}\",\n  \"title\": \"Проверить датчик вибрации\",\n  \"description\": \"Показания нестабильны последние сутки\",\n  \"priority\": \"medium\"\n}"
 						},
-						"url": { "raw": "{{baseUrl}}/requests", "host": ["{{baseUrl}}"], "path": ["requests"] }
+						"url": {
+							"raw": "{{baseUrl}}/requests",
+							"host": ["{{baseUrl}}"],
+							"path": ["requests"]
+						}
 					},
 					"event": [
 						{
@@ -414,10 +517,21 @@
 							"mode": "raw",
 							"raw": "{\n  \"equipmentId\": \"unknown-equipment-id\",\n  \"title\": \"Проверить оборудование\",\n  \"priority\": \"low\"\n}"
 						},
-						"url": { "raw": "{{baseUrl}}/requests", "host": ["{{baseUrl}}"], "path": ["requests"] }
+						"url": {
+							"raw": "{{baseUrl}}/requests",
+							"host": ["{{baseUrl}}"],
+							"path": ["requests"]
+						}
 					},
 					"event": [
-						{ "listen": "test", "script": { "exec": ["pm.test('status 404', () => pm.response.to.have.status(404));"] } }
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 404', () => pm.response.to.have.status(404));"
+								]
+							}
+						}
 					]
 				},
 				{
@@ -429,7 +543,11 @@
 							"mode": "raw",
 							"raw": "{\n  \"equipmentId\": \"{{equipmentId}}\",\n  \"title\": \"кор\",\n  \"priority\": \"low\"\n}"
 						},
-						"url": { "raw": "{{baseUrl}}/requests", "host": ["{{baseUrl}}"], "path": ["requests"] }
+						"url": {
+							"raw": "{{baseUrl}}/requests",
+							"host": ["{{baseUrl}}"],
+							"path": ["requests"]
+						}
 					},
 					"event": [
 						{
@@ -450,7 +568,15 @@
 					"request": {
 						"method": "GET",
 						"header": [],
-						"url": { "raw": "{{baseUrl}}/requests?page=1&limit=20", "host": ["{{baseUrl}}"], "path": ["requests"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "20" }] }
+						"url": {
+							"raw": "{{baseUrl}}/requests?page=1&limit=20",
+							"host": ["{{baseUrl}}"],
+							"path": ["requests"],
+							"query": [
+								{ "key": "page", "value": "1" },
+								{ "key": "limit", "value": "20" }
+							]
+						}
 					},
 					"event": [
 						{
@@ -476,11 +602,21 @@
 							"raw": "{{baseUrl}}/requests?priority=medium&equipmentId={{equipmentId}}",
 							"host": ["{{baseUrl}}"],
 							"path": ["requests"],
-							"query": [{ "key": "priority", "value": "medium" }, { "key": "equipmentId", "value": "{{equipmentId}}" }]
+							"query": [
+								{ "key": "priority", "value": "medium" },
+								{ "key": "equipmentId", "value": "{{equipmentId}}" }
+							]
 						}
 					},
 					"event": [
-						{ "listen": "test", "script": { "exec": ["pm.test('status 200', () => pm.response.to.have.status(200));"] } }
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 200', () => pm.response.to.have.status(200));"
+								]
+							}
+						}
 					]
 				},
 				{
@@ -488,7 +624,11 @@
 					"request": {
 						"method": "GET",
 						"header": [],
-						"url": { "raw": "{{baseUrl}}/requests/{{requestId}}", "host": ["{{baseUrl}}"], "path": ["requests", "{{requestId}}"] }
+						"url": {
+							"raw": "{{baseUrl}}/requests/{{requestId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["requests", "{{requestId}}"]
+						}
 					},
 					"event": [
 						{
@@ -509,10 +649,21 @@
 					"request": {
 						"method": "GET",
 						"header": [],
-						"url": { "raw": "{{baseUrl}}/requests/unknown-id", "host": ["{{baseUrl}}"], "path": ["requests", "unknown-id"] }
+						"url": {
+							"raw": "{{baseUrl}}/requests/unknown-id",
+							"host": ["{{baseUrl}}"],
+							"path": ["requests", "unknown-id"]
+						}
 					},
 					"event": [
-						{ "listen": "test", "script": { "exec": ["pm.test('status 404', () => pm.response.to.have.status(404));"] } }
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 404', () => pm.response.to.have.status(404));"
+								]
+							}
+						}
 					]
 				},
 				{
@@ -520,8 +671,15 @@
 					"request": {
 						"method": "PATCH",
 						"header": [{ "key": "Content-Type", "value": "application/json" }],
-						"body": { "mode": "raw", "raw": "{\n  \"priority\": \"critical\"\n}" },
-						"url": { "raw": "{{baseUrl}}/requests/{{requestId}}", "host": ["{{baseUrl}}"], "path": ["requests", "{{requestId}}"] }
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"priority\": \"critical\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/requests/{{requestId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["requests", "{{requestId}}"]
+						}
 					},
 					"event": [
 						{
@@ -544,8 +702,15 @@
 					"request": {
 						"method": "PATCH",
 						"header": [{ "key": "Content-Type", "value": "application/json" }],
-						"body": { "mode": "raw", "raw": "{\n  \"status\": \"in_progress\"\n}" },
-						"url": { "raw": "{{baseUrl}}/requests/{{requestId}}/status", "host": ["{{baseUrl}}"], "path": ["requests", "{{requestId}}", "status"] }
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"in_progress\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/requests/{{requestId}}/status",
+							"host": ["{{baseUrl}}"],
+							"path": ["requests", "{{requestId}}", "status"]
+						}
 					},
 					"event": [
 						{
@@ -565,10 +730,21 @@
 						"method": "PATCH",
 						"header": [{ "key": "Content-Type", "value": "application/json" }],
 						"body": { "mode": "raw", "raw": "{\n  \"status\": \"new\"\n}" },
-						"url": { "raw": "{{baseUrl}}/requests/{{requestId}}/status", "host": ["{{baseUrl}}"], "path": ["requests", "{{requestId}}", "status"] }
+						"url": {
+							"raw": "{{baseUrl}}/requests/{{requestId}}/status",
+							"host": ["{{baseUrl}}"],
+							"path": ["requests", "{{requestId}}", "status"]
+						}
 					},
 					"event": [
-						{ "listen": "test", "script": { "exec": ["pm.test('status 409', () => pm.response.to.have.status(409));"] } }
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 409', () => pm.response.to.have.status(409));"
+								]
+							}
+						}
 					]
 				},
 				{
@@ -576,7 +752,11 @@
 					"request": {
 						"method": "GET",
 						"header": [],
-						"url": { "raw": "{{baseUrl}}/equipment/{{equipmentId}}/requests", "host": ["{{baseUrl}}"], "path": ["equipment", "{{equipmentId}}", "requests"] }
+						"url": {
+							"raw": "{{baseUrl}}/equipment/{{equipmentId}}/requests",
+							"host": ["{{baseUrl}}"],
+							"path": ["equipment", "{{equipmentId}}", "requests"]
+						}
 					},
 					"event": [
 						{
@@ -599,10 +779,21 @@
 						"method": "PATCH",
 						"header": [{ "key": "Content-Type", "value": "application/json" }],
 						"body": { "mode": "raw", "raw": "{\n  \"status\": \"done\"\n}" },
-						"url": { "raw": "{{baseUrl}}/requests/{{requestId}}/status", "host": ["{{baseUrl}}"], "path": ["requests", "{{requestId}}", "status"] }
+						"url": {
+							"raw": "{{baseUrl}}/requests/{{requestId}}/status",
+							"host": ["{{baseUrl}}"],
+							"path": ["requests", "{{requestId}}", "status"]
+						}
 					},
 					"event": [
-						{ "listen": "test", "script": { "exec": ["pm.test('status 200', () => pm.response.to.have.status(200));"] } }
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 200', () => pm.response.to.have.status(200));"
+								]
+							}
+						}
 					]
 				},
 				{
@@ -610,10 +801,21 @@
 					"request": {
 						"method": "DELETE",
 						"header": [],
-						"url": { "raw": "{{baseUrl}}/requests/{{requestId}}", "host": ["{{baseUrl}}"], "path": ["requests", "{{requestId}}"] }
+						"url": {
+							"raw": "{{baseUrl}}/requests/{{requestId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["requests", "{{requestId}}"]
+						}
 					},
 					"event": [
-						{ "listen": "test", "script": { "exec": ["pm.test('status 204', () => pm.response.to.have.status(204));"] } }
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 204', () => pm.response.to.have.status(204));"
+								]
+							}
+						}
 					]
 				},
 				{
@@ -621,10 +823,21 @@
 					"request": {
 						"method": "DELETE",
 						"header": [],
-						"url": { "raw": "{{baseUrl}}/requests/unknown-id", "host": ["{{baseUrl}}"], "path": ["requests", "unknown-id"] }
+						"url": {
+							"raw": "{{baseUrl}}/requests/unknown-id",
+							"host": ["{{baseUrl}}"],
+							"path": ["requests", "unknown-id"]
+						}
 					},
 					"event": [
-						{ "listen": "test", "script": { "exec": ["pm.test('status 404', () => pm.response.to.have.status(404));"] } }
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 404', () => pm.response.to.have.status(404));"
+								]
+							}
+						}
 					]
 				},
 				{
@@ -632,10 +845,21 @@
 					"request": {
 						"method": "DELETE",
 						"header": [],
-						"url": { "raw": "{{baseUrl}}/equipment/{{equipmentId}}", "host": ["{{baseUrl}}"], "path": ["equipment", "{{equipmentId}}"] }
+						"url": {
+							"raw": "{{baseUrl}}/equipment/{{equipmentId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["equipment", "{{equipmentId}}"]
+						}
 					},
 					"event": [
-						{ "listen": "test", "script": { "exec": ["pm.test('status 204', () => pm.response.to.have.status(204));"] } }
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 204', () => pm.response.to.have.status(204));"
+								]
+							}
+						}
 					]
 				}
 			]
@@ -649,7 +873,11 @@
 						"method": "GET",
 						"header": [],
 						"description": "Намеренно превышает RATE_LIMIT_MAX для /api (по умолчанию 100 запросов / 60с в .env). Скрипт повторяет сам себя (postman.setNextRequest), пока не получит 429, затем останавливается. ВАЖНО: после срабатывания сервер будет отвечать 429 на все запросы к /api до конца текущего окна — поэтому папка стоит последней в коллекции; подождите ~RATE_LIMIT_WINDOW_MS перед повторным прогоном всей коллекции.",
-						"url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] }
+						"url": {
+							"raw": "{{baseUrl}}/health",
+							"host": ["{{baseUrl}}"],
+							"path": ["health"]
+						}
 					},
 					"event": [
 						{

@@ -62,31 +62,32 @@ export const equipmentServiceUpdate = async (
 	id: string,
 	body: Partial<Omit<EquipmentType, 'id'>>,
 ) => {
-	const existing = await equipmentFindById(id);
-	if (!existing) throw new NotFoundError('Оборудование', 'не найдено');
-
 	const { id: _ignoredId, ...updates } = body as Partial<EquipmentType>;
 
-	if (updates.serialNumber && updates.serialNumber !== existing.serialNumber) {
-		const isExist = await equipmentCheckIsExist(updates.serialNumber);
-		if (isExist) {
-			throw new ConflictError('Оборудование с таким номером уже существует');
+	if (updates.serialNumber) {
+		const existing = await equipmentFindById(id);
+		if (!existing) throw new NotFoundError('Оборудование', 'не найдено');
+
+		if (updates.serialNumber !== existing.serialNumber) {
+			const isExist = await equipmentCheckIsExist(updates.serialNumber);
+			if (isExist) {
+				throw new ConflictError('Оборудование с таким номером уже существует');
+			}
 		}
 	}
 
 	const updated = await equipmentUpdateData(id, updates);
-	return updated as EquipmentType;
+	if (!updated) throw new NotFoundError('Оборудование', 'не найдено');
+	return updated;
 };
 
 export const equipmentServiceDelete = async (id: string) => {
-	const existing = await equipmentFindById(id);
-	if (!existing) throw new NotFoundError('Оборудование', 'не найдено');
-
 	if (await hasOpenRequestsForEquipment(id)) {
 		throw new ConflictError(
 			'Нельзя удалить оборудование, по которому есть незакрытые заявки',
 		);
 	}
 
-	await equipmentDeleteData(id);
+	const deleted = await equipmentDeleteData(id);
+	if (!deleted) throw new NotFoundError('Оборудование', 'не найдено');
 };

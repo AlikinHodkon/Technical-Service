@@ -19,13 +19,18 @@ export const sortByField = <T, F extends string>(
 	});
 };
 
+const parsePositiveInt = (value: string | undefined, fallback: number) => {
+	const parsed = Number.parseInt(value ?? '', 10);
+	return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
+
 export const paginate = <T>(
 	list: T[],
 	page: string | undefined,
 	limit: string | undefined,
 ) => {
-	const pageNum = Math.max(Number.parseInt(page ?? '1', 10) || 1, 1);
-	const limitNum = Math.max(Number.parseInt(limit ?? '20', 10) || 1, 1);
+	const pageNum = parsePositiveInt(page, 1);
+	const limitNum = parsePositiveInt(limit, 20);
 	const start = (pageNum - 1) * limitNum;
 
 	return {
