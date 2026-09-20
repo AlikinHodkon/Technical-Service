@@ -1,0 +1,693 @@
+{
+	"info": {
+		"name": "Technical Service API",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{ "key": "baseUrl", "value": "http://localhost:3000/api" },
+		{ "key": "equipmentId", "value": "" },
+		{ "key": "equipmentId2", "value": "" },
+		{ "key": "requestId", "value": "" },
+		{ "key": "deletionEquipmentId", "value": "" },
+		{ "key": "deletionRequestId", "value": "" },
+		{ "key": "rateLimitAttempts", "value": "0" }
+	],
+	"item": [
+		{
+			"name": "Health",
+			"item": [
+				{
+					"name": "GET /health",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 200', () => pm.response.to.have.status(200));",
+									"pm.test('body shape', () => {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json.status).to.eql('ok');",
+									"});"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Equipment",
+			"item": [
+				{
+					"name": "POST /equipment — create (201)",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Турбина №1\",\n  \"type\": \"turbine\",\n  \"serialNumber\": \"WT-POSTMAN-0001\",\n  \"location\": { \"lat\": 55.75, \"lon\": 37.62 },\n  \"status\": \"operational\",\n  \"installedAt\": \"2024-01-01T00:00:00.000Z\"\n}"
+						},
+						"url": { "raw": "{{baseUrl}}/equipment", "host": ["{{baseUrl}}"], "path": ["equipment"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 201', () => pm.response.to.have.status(201));",
+									"pm.test('has Location header', () => pm.response.to.have.header('Location'));",
+									"pm.test('body has id and matches input', () => {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json.id).to.be.a('string');",
+									"    pm.expect(json.serialNumber).to.eql('WT-POSTMAN-0001');",
+									"    pm.collectionVariables.set('equipmentId', json.id);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /equipment — duplicate serialNumber (409)",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"Турбина-дубликат\",\n  \"type\": \"turbine\",\n  \"serialNumber\": \"WT-POSTMAN-0001\",\n  \"location\": { \"lat\": 55.75, \"lon\": 37.62 },\n  \"status\": \"operational\",\n  \"installedAt\": \"2024-01-01T00:00:00.000Z\"\n}"
+						},
+						"url": { "raw": "{{baseUrl}}/equipment", "host": ["{{baseUrl}}"], "path": ["equipment"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 409', () => pm.response.to.have.status(409));",
+									"pm.test('unified error shape', () => {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json.status).to.eql(409);",
+									"    pm.expect(json.requestId).to.be.a('string');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /equipment — invalid body (400)",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"АБ\",\n  \"type\": \"turbine\",\n  \"serialNumber\": \"WT-POSTMAN-0002\",\n  \"location\": { \"lat\": 55.75, \"lon\": 37.62 },\n  \"status\": \"operational\",\n  \"installedAt\": \"2024-01-01T00:00:00.000Z\"\n}"
+						},
+						"url": { "raw": "{{baseUrl}}/equipment", "host": ["{{baseUrl}}"], "path": ["equipment"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 400', () => pm.response.to.have.status(400));",
+									"pm.test('error details name the invalid field', () => {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json.errors).to.be.an('array').that.is.not.empty;",
+									"    pm.expect(json.errors[0].field).to.eql('name');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /equipment — list with pagination",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/equipment?page=1&limit=20",
+							"host": ["{{baseUrl}}"],
+							"path": ["equipment"],
+							"query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "20" }]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 200', () => pm.response.to.have.status(200));",
+									"pm.test('pagination metadata present', () => {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json).to.have.all.keys('data', 'total', 'page', 'limit');",
+									"    pm.expect(json.data).to.be.an('array');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /equipment — filtered by status",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/equipment?status=operational",
+							"host": ["{{baseUrl}}"],
+							"path": ["equipment"],
+							"query": [{ "key": "status", "value": "operational" }]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 200', () => pm.response.to.have.status(200));",
+									"pm.test('all items match filter', () => {",
+									"    const json = pm.response.json();",
+									"    json.data.forEach((item) => pm.expect(item.status).to.eql('operational'));",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /equipment/:id — card",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{baseUrl}}/equipment/{{equipmentId}}", "host": ["{{baseUrl}}"], "path": ["equipment", "{{equipmentId}}"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 200', () => pm.response.to.have.status(200));",
+									"pm.test('returns the equipment', () => {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json.id).to.eql(pm.collectionVariables.get('equipmentId'));",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /equipment/:id — unknown id (404)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{baseUrl}}/equipment/unknown-id", "host": ["{{baseUrl}}"], "path": ["equipment", "unknown-id"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 404', () => pm.response.to.have.status(404));",
+									"pm.test('unified error shape', () => {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json.requestId).to.be.a('string');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "PATCH /equipment/:id — update",
+					"request": {
+						"method": "PATCH",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"status\": \"maintenance\"\n}" },
+						"url": { "raw": "{{baseUrl}}/equipment/{{equipmentId}}", "host": ["{{baseUrl}}"], "path": ["equipment", "{{equipmentId}}"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 200', () => pm.response.to.have.status(200));",
+									"pm.test('status field updated', () => {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json.status).to.eql('maintenance');",
+									"    pm.expect(json.id).to.eql(pm.collectionVariables.get('equipmentId'));",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "PATCH /equipment/:id — unknown id (404)",
+					"request": {
+						"method": "PATCH",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"status\": \"fault\"\n}" },
+						"url": { "raw": "{{baseUrl}}/equipment/unknown-id", "host": ["{{baseUrl}}"], "path": ["equipment", "unknown-id"] }
+					},
+					"event": [
+						{ "listen": "test", "script": { "exec": ["pm.test('status 404', () => pm.response.to.have.status(404));"] } }
+					]
+				},
+				{
+					"name": "GET /equipment/:id/weather",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{baseUrl}}/equipment/{{equipmentId}}/weather", "host": ["{{baseUrl}}"], "path": ["equipment", "{{equipmentId}}", "weather"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 200 (or 503 if the external weather API is unreachable)', () => {",
+									"    pm.expect([200, 503]).to.include(pm.response.code);",
+									"});",
+									"if (pm.response.code === 200) {",
+									"    pm.test('has per-day forecast with suitability flag', () => {",
+									"        const json = pm.response.json();",
+									"        pm.expect(json.days).to.be.an('array').that.is.not.empty;",
+									"        pm.expect(json.days[0]).to.have.property('suitableForOutdoorWork');",
+									"    });",
+									"}"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "DELETE /equipment/:id — blocked by open request (409)",
+					"item": [
+						{
+							"name": "1. Create equipment for deletion test",
+							"request": {
+								"method": "POST",
+								"header": [{ "key": "Content-Type", "value": "application/json" }],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"Оборудование под удаление\",\n  \"type\": \"sensor\",\n  \"serialNumber\": \"WT-POSTMAN-DEL-0001\",\n  \"location\": { \"lat\": 50, \"lon\": 30 },\n  \"status\": \"operational\",\n  \"installedAt\": \"2024-01-01T00:00:00.000Z\"\n}"
+								},
+								"url": { "raw": "{{baseUrl}}/equipment", "host": ["{{baseUrl}}"], "path": ["equipment"] }
+							},
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test('status 201', () => pm.response.to.have.status(201));",
+											"pm.collectionVariables.set('deletionEquipmentId', pm.response.json().id);"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "2. Create an open request for it",
+							"request": {
+								"method": "POST",
+								"header": [{ "key": "Content-Type", "value": "application/json" }],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"equipmentId\": \"{{deletionEquipmentId}}\",\n  \"title\": \"Проверить перед списанием\",\n  \"priority\": \"low\"\n}"
+								},
+								"url": { "raw": "{{baseUrl}}/requests", "host": ["{{baseUrl}}"], "path": ["requests"] }
+							},
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test('status 201', () => pm.response.to.have.status(201));",
+											"pm.collectionVariables.set('deletionRequestId', pm.response.json().id);"
+										]
+									}
+								}
+							]
+						},
+						{
+							"name": "3. DELETE equipment while request is open (409)",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": { "raw": "{{baseUrl}}/equipment/{{deletionEquipmentId}}", "host": ["{{baseUrl}}"], "path": ["equipment", "{{deletionEquipmentId}}"] }
+							},
+							"event": [
+								{ "listen": "test", "script": { "exec": ["pm.test('status 409', () => pm.response.to.have.status(409));"] } }
+							]
+						},
+						{
+							"name": "4. Close the request",
+							"request": {
+								"method": "PATCH",
+								"header": [{ "key": "Content-Type", "value": "application/json" }],
+								"body": { "mode": "raw", "raw": "{\n  \"status\": \"rejected\"\n}" },
+								"url": { "raw": "{{baseUrl}}/requests/{{deletionRequestId}}/status", "host": ["{{baseUrl}}"], "path": ["requests", "{{deletionRequestId}}", "status"] }
+							},
+							"event": [
+								{ "listen": "test", "script": { "exec": ["pm.test('status 200', () => pm.response.to.have.status(200));"] } }
+							]
+						},
+						{
+							"name": "5. DELETE equipment now succeeds (204)",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": { "raw": "{{baseUrl}}/equipment/{{deletionEquipmentId}}", "host": ["{{baseUrl}}"], "path": ["equipment", "{{deletionEquipmentId}}"] }
+							},
+							"event": [
+								{ "listen": "test", "script": { "exec": ["pm.test('status 204', () => pm.response.to.have.status(204));"] } }
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Requests",
+			"item": [
+				{
+					"name": "POST /requests — create (201)",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"equipmentId\": \"{{equipmentId}}\",\n  \"title\": \"Проверить датчик вибрации\",\n  \"description\": \"Показания нестабильны последние сутки\",\n  \"priority\": \"medium\"\n}"
+						},
+						"url": { "raw": "{{baseUrl}}/requests", "host": ["{{baseUrl}}"], "path": ["requests"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 201', () => pm.response.to.have.status(201));",
+									"pm.test('status defaults to new', () => {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json.status).to.eql('new');",
+									"    pm.collectionVariables.set('requestId', json.id);",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /requests — unknown equipmentId (404)",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"equipmentId\": \"unknown-equipment-id\",\n  \"title\": \"Проверить оборудование\",\n  \"priority\": \"low\"\n}"
+						},
+						"url": { "raw": "{{baseUrl}}/requests", "host": ["{{baseUrl}}"], "path": ["requests"] }
+					},
+					"event": [
+						{ "listen": "test", "script": { "exec": ["pm.test('status 404', () => pm.response.to.have.status(404));"] } }
+					]
+				},
+				{
+					"name": "POST /requests — invalid body (400)",
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"equipmentId\": \"{{equipmentId}}\",\n  \"title\": \"кор\",\n  \"priority\": \"low\"\n}"
+						},
+						"url": { "raw": "{{baseUrl}}/requests", "host": ["{{baseUrl}}"], "path": ["requests"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 400', () => pm.response.to.have.status(400));",
+									"pm.test('names the invalid field', () => {",
+									"    pm.expect(pm.response.json().errors[0].field).to.eql('title');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /requests — list with pagination",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{baseUrl}}/requests?page=1&limit=20", "host": ["{{baseUrl}}"], "path": ["requests"], "query": [{ "key": "page", "value": "1" }, { "key": "limit", "value": "20" }] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 200', () => pm.response.to.have.status(200));",
+									"pm.test('pagination metadata present', () => {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json).to.have.all.keys('data', 'total', 'page', 'limit');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /requests — filtered by priority + equipmentId",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/requests?priority=medium&equipmentId={{equipmentId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["requests"],
+							"query": [{ "key": "priority", "value": "medium" }, { "key": "equipmentId", "value": "{{equipmentId}}" }]
+						}
+					},
+					"event": [
+						{ "listen": "test", "script": { "exec": ["pm.test('status 200', () => pm.response.to.have.status(200));"] } }
+					]
+				},
+				{
+					"name": "GET /requests/:id — card",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{baseUrl}}/requests/{{requestId}}", "host": ["{{baseUrl}}"], "path": ["requests", "{{requestId}}"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 200', () => pm.response.to.have.status(200));",
+									"pm.test('returns the request', () => {",
+									"    pm.expect(pm.response.json().id).to.eql(pm.collectionVariables.get('requestId'));",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /requests/:id — unknown id (404)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{baseUrl}}/requests/unknown-id", "host": ["{{baseUrl}}"], "path": ["requests", "unknown-id"] }
+					},
+					"event": [
+						{ "listen": "test", "script": { "exec": ["pm.test('status 404', () => pm.response.to.have.status(404));"] } }
+					]
+				},
+				{
+					"name": "PATCH /requests/:id — edit fields",
+					"request": {
+						"method": "PATCH",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"priority\": \"critical\"\n}" },
+						"url": { "raw": "{{baseUrl}}/requests/{{requestId}}", "host": ["{{baseUrl}}"], "path": ["requests", "{{requestId}}"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 200', () => pm.response.to.have.status(200));",
+									"pm.test('priority updated, status untouched', () => {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json.priority).to.eql('critical');",
+									"    pm.expect(json.status).to.eql('new');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "PATCH /requests/:id/status — valid transition (200)",
+					"request": {
+						"method": "PATCH",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"status\": \"in_progress\"\n}" },
+						"url": { "raw": "{{baseUrl}}/requests/{{requestId}}/status", "host": ["{{baseUrl}}"], "path": ["requests", "{{requestId}}", "status"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 200', () => pm.response.to.have.status(200));",
+									"pm.test('status transitioned', () => pm.expect(pm.response.json().status).to.eql('in_progress'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "PATCH /requests/:id/status — invalid transition (409)",
+					"request": {
+						"method": "PATCH",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"status\": \"new\"\n}" },
+						"url": { "raw": "{{baseUrl}}/requests/{{requestId}}/status", "host": ["{{baseUrl}}"], "path": ["requests", "{{requestId}}", "status"] }
+					},
+					"event": [
+						{ "listen": "test", "script": { "exec": ["pm.test('status 409', () => pm.response.to.have.status(409));"] } }
+					]
+				},
+				{
+					"name": "GET /equipment/:id/requests — nested resource",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{baseUrl}}/equipment/{{equipmentId}}/requests", "host": ["{{baseUrl}}"], "path": ["equipment", "{{equipmentId}}", "requests"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 200', () => pm.response.to.have.status(200));",
+									"pm.test('scoped to this equipment only', () => {",
+									"    const json = pm.response.json();",
+									"    json.data.forEach((r) => pm.expect(r.equipmentId).to.eql(pm.collectionVariables.get('equipmentId')));",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "PATCH /requests/:id/status — close before delete",
+					"request": {
+						"method": "PATCH",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"status\": \"done\"\n}" },
+						"url": { "raw": "{{baseUrl}}/requests/{{requestId}}/status", "host": ["{{baseUrl}}"], "path": ["requests", "{{requestId}}", "status"] }
+					},
+					"event": [
+						{ "listen": "test", "script": { "exec": ["pm.test('status 200', () => pm.response.to.have.status(200));"] } }
+					]
+				},
+				{
+					"name": "DELETE /requests/:id — success (204)",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": { "raw": "{{baseUrl}}/requests/{{requestId}}", "host": ["{{baseUrl}}"], "path": ["requests", "{{requestId}}"] }
+					},
+					"event": [
+						{ "listen": "test", "script": { "exec": ["pm.test('status 204', () => pm.response.to.have.status(204));"] } }
+					]
+				},
+				{
+					"name": "DELETE /requests/:id — unknown id (404)",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": { "raw": "{{baseUrl}}/requests/unknown-id", "host": ["{{baseUrl}}"], "path": ["requests", "unknown-id"] }
+					},
+					"event": [
+						{ "listen": "test", "script": { "exec": ["pm.test('status 404', () => pm.response.to.have.status(404));"] } }
+					]
+				},
+				{
+					"name": "DELETE /equipment/:id — final cleanup (204)",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": { "raw": "{{baseUrl}}/equipment/{{equipmentId}}", "host": ["{{baseUrl}}"], "path": ["equipment", "{{equipmentId}}"] }
+					},
+					"event": [
+						{ "listen": "test", "script": { "exec": ["pm.test('status 204', () => pm.response.to.have.status(204));"] } }
+					]
+				}
+			]
+		},
+		{
+			"name": "Security",
+			"item": [
+				{
+					"name": "GET /health — burst until rate limited (429)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"description": "Намеренно превышает RATE_LIMIT_MAX для /api (по умолчанию 100 запросов / 60с в .env). Скрипт повторяет сам себя (postman.setNextRequest), пока не получит 429, затем останавливается. ВАЖНО: после срабатывания сервер будет отвечать 429 на все запросы к /api до конца текущего окна — поэтому папка стоит последней в коллекции; подождите ~RATE_LIMIT_WINDOW_MS перед повторным прогоном всей коллекции.",
+						"url": { "raw": "{{baseUrl}}/health", "host": ["{{baseUrl}}"], "path": ["health"] }
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const MAX_ATTEMPTS = 120;",
+									"const attempts = parseInt(pm.collectionVariables.get('rateLimitAttempts') || '0', 10) + 1;",
+									"pm.collectionVariables.set('rateLimitAttempts', String(attempts));",
+									"",
+									"if (pm.response.code === 429) {",
+									"    pm.test('status 429 once the rate limit is exceeded', () => {",
+									"        pm.response.to.have.status(429);",
+									"    });",
+									"    pm.test('rate limit headers present', () => {",
+									"        pm.expect(pm.response.headers.has('RateLimit-Limit')).to.be.true;",
+									"        pm.expect(pm.response.headers.has('RateLimit-Remaining')).to.be.true;",
+									"    });",
+									"    pm.test('unified error shape', () => {",
+									"        const json = pm.response.json();",
+									"        pm.expect(json.status).to.eql(429);",
+									"        pm.expect(json.requestId).to.be.a('string');",
+									"    });",
+									"    pm.collectionVariables.set('rateLimitAttempts', '0');",
+									"} else if (attempts < MAX_ATTEMPTS) {",
+									"    pm.execution.setNextRequest('GET /health — burst until rate limited (429)');",
+									"} else {",
+									"    pm.test('rate limit triggers within ' + MAX_ATTEMPTS + ' requests', () => {",
+									"        pm.expect(pm.response.code).to.eql(429);",
+									"    });",
+									"    pm.collectionVariables.set('rateLimitAttempts', '0');",
+									"}"
+								]
+							}
+						}
+					]
+				}
+			]
+		}
+	]
+}
