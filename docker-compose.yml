@@ -1,0 +1,10 @@
+services:
+  app:
+    build: .
+    env_file: .env
+    environment:
+      - NODE_ENV=production
+    ports:
+      - "${PORT:-3000}:${PORT:-3000}"
+    volumes:
+      - ./storage:/app/storage
