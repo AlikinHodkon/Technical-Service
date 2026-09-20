@@ -1,11 +1,11 @@
 import type { PathLike } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+import { config } from '../config/env.ts';
 import type { dataType } from './constants.ts';
 
 export const getFilePath = async (fileName: dataType) => {
-	const storageDir =
-		process.env.NODE_ENV === 'test' ? 'storage-test' : 'storage';
+	const storageDir = config.nodeEnv === 'test' ? 'storage-test' : 'storage';
 	const dir = path.join(process.cwd(), storageDir);
 	const filePath = path.join(dir, `${fileName}.json`);
 	await mkdir(dir, { recursive: true });

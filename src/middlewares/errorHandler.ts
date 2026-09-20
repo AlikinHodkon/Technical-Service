@@ -1,4 +1,5 @@
 import type { ErrorRequestHandler } from 'express';
+import { logger } from '../config/logger.ts';
 
 export const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
 	if (res.headersSent) return next(err);
@@ -6,7 +7,7 @@ export const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
 	const status = err.status ?? err.statusCode ?? 500;
 	const isOperational = err.isOperational === true || status < 500;
 
-	const log = req.log;
+	const log = req.log ?? logger;
 	log[status >= 500 ? 'error' : 'warn']({ err, status }, 'request failed');
 
 	const body = {

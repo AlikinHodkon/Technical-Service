@@ -1,7 +1,7 @@
 import { mkdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import request from 'supertest';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import app from '../app.ts';
 
 const testStorageDir = path.join(process.cwd(), 'storage-test');
@@ -34,6 +34,7 @@ beforeEach(async () => {
 
 afterEach(async () => {
 	await rm(testStorageDir, { recursive: true, force: true });
+	vi.unstubAllGlobals();
 });
 
 describe('POST /api/equipment', () => {
@@ -241,5 +242,114 @@ describe('GET /api/equipment/:id/requests', () => {
 		);
 
 		expect(response.status).toBe(404);
+	});
+});
+
+const okForecastResponse = () => ({
+	latitude: 55.75,
+	longitude: 37.62,
+	timezone: 'Europe/Moscow',
+	daily_units: {
+		time: 'iso8601',
+		temperature_2m_max: '°C',
+		temperature_2m_min: '°C',
+		precipitation_sum: 'mm',
+		wind_speed_10m_max: 'km/h',
+	},
+	daily: {
+		time: ['2024-06-01', '2024-06-02', '2024-06-03'],
+		temperature_2m_max: [20, 22, 18],
+		temperature_2m_min: [10, 12, 9],
+		precipitation_sum: [0, 3, 0],
+		wind_speed_10m_max: [12, 15, 25],
+	},
+});
+
+describe('GET /api/equipment/:id/weather', () => {
+	it('returns per-day forecast with suitability flags', async () => {
+		const equipment = await createEquipment();
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockResolvedValue({
+				ok: true,
+				json: async () => okForecastResponse(),
+			}),
+		);
+
+		const response = await request(app).get(
+			`/api/equipment/${equipment.body.id}/weather`,
+		);
+
+		expect(response.status).toBe(200);
+		expect(response.body.equipmentId).toBe(equipment.body.id);
+		expect(response.body.days).toHaveLength(3);
+		expect(response.body.days[0]).toMatchObject({
+			precipitationSum: 0,
+			windSpeedMax: 12,
+			suitableForOutdoorWork: true,
+		});
+		expect(response.body.days[1].suitableForOutdoorWork).toBe(false); // осадки
+		expect(response.body.days[2].suitableForOutdoorWork).toBe(false); // сильный ветер
+	});
+
+	it('returns 404 for unknown equipment id without calling the weather API', async () => {
+		const fetchMock = vi.fn();
+		vi.stubGlobal('fetch', fetchMock);
+
+		const response = await request(app).get(
+			'/api/equipment/unknown-id/weather',
+		);
+
+		expect(response.status).toBe(404);
+		expect(fetchMock).not.toHaveBeenCalled();
+	});
+
+	it('returns 503 without crashing the service when the API is unreachable', async () => {
+		const equipment = await createEquipment();
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockRejectedValue(new TypeError('fetch failed')),
+		);
+
+		const response = await request(app).get(
+			`/api/equipment/${equipment.body.id}/weather`,
+		);
+		expect(response.status).toBe(503);
+
+		vi.unstubAllGlobals();
+		const health = await request(app).get('/api/health');
+		expect(health.status).toBe(200);
+	});
+
+	it('returns 503 when the API request times out', async () => {
+		const equipment = await createEquipment();
+		vi.stubGlobal(
+			'fetch',
+			vi
+				.fn()
+				.mockRejectedValue(
+					Object.assign(new Error('aborted'), { name: 'AbortError' }),
+				),
+		);
+
+		const response = await request(app).get(
+			`/api/equipment/${equipment.body.id}/weather`,
+		);
+
+		expect(response.status).toBe(503);
+	});
+
+	it('returns 503 when the API responds with an error status', async () => {
+		const equipment = await createEquipment();
+		vi.stubGlobal(
+			'fetch',
+			vi.fn().mockResolvedValue({ ok: false, status: 500 }),
+		);
+
+		const response = await request(app).get(
+			`/api/equipment/${equipment.body.id}/weather`,
+		);
+
+		expect(response.status).toBe(503);
 	});
 });

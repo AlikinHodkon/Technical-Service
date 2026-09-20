@@ -5,6 +5,7 @@ import {
 	getAllEquipment,
 	getEquipmentById,
 	getEquipmentRequests,
+	getEquipmentWeather,
 	updateEquipment,
 } from '../controllers/equipment.ts';
 import { validate } from '../middlewares/index.ts';
@@ -39,5 +40,6 @@ router.get(
 	validate({ query: getRequestsQuerySchema }),
 	getEquipmentRequests,
 );
+router.get('/equipment/:id/weather', getEquipmentWeather);
 
 export default router;

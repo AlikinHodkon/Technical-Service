@@ -55,3 +55,21 @@ export class ValidationError extends AppError {
 		});
 	}
 }
+
+export class ForbiddenError extends AppError {
+	constructor(message = 'Доступ запрещён') {
+		super(message, { status: 403, code: 'forbidden' });
+	}
+}
+
+export class TooManyRequestsError extends AppError {
+	constructor(message = 'Слишком много запросов, попробуйте позже') {
+		super(message, { status: 429, code: 'too_many_requests' });
+	}
+}
+
+export class ServiceUnavailableError extends AppError {
+	constructor(message: string, cause?: unknown) {
+		super(message, { status: 503, code: 'service_unavailable', cause });
+	}
+}
