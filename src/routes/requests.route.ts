@@ -8,6 +8,7 @@ import {
 	updateRequestStatus,
 } from '../controllers/requests.ts';
 import { validate } from '../middlewares/index.ts';
+import { idParamSchema } from '../validators/common.validator.ts';
 import {
 	createRequestSchema,
 	getRequestsQuerySchema,
@@ -27,17 +28,25 @@ router.post(
 	validate({ body: createRequestSchema }),
 	createRequest,
 );
-router.get('/requests/:id', getRequestById);
+router.get(
+	'/requests/:id',
+	validate({ params: idParamSchema }),
+	getRequestById,
+);
 router.patch(
 	'/requests/:id',
-	validate({ body: updateRequestSchema }),
+	validate({ params: idParamSchema, body: updateRequestSchema }),
 	updateRequest,
 );
 router.patch(
 	'/requests/:id/status',
-	validate({ body: updateRequestStatusSchema }),
+	validate({ params: idParamSchema, body: updateRequestStatusSchema }),
 	updateRequestStatus,
 );
-router.delete('/requests/:id', deleteRequest);
+router.delete(
+	'/requests/:id',
+	validate({ params: idParamSchema }),
+	deleteRequest,
+);
 
 export default router;

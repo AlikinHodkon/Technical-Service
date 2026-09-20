@@ -9,6 +9,7 @@ import {
 	updateEquipment,
 } from '../controllers/equipment.ts';
 import { validate } from '../middlewares/index.ts';
+import { idParamSchema } from '../validators/common.validator.ts';
 import {
 	createEquipmentSchema,
 	getEquipmentQuerySchema,
@@ -28,18 +29,30 @@ router.post(
 	validate({ body: createEquipmentSchema }),
 	createEquipment,
 );
-router.get('/equipment/:id', getEquipmentById);
+router.get(
+	'/equipment/:id',
+	validate({ params: idParamSchema }),
+	getEquipmentById,
+);
 router.patch(
 	'/equipment/:id',
-	validate({ body: updateEquipmentSchema }),
+	validate({ params: idParamSchema, body: updateEquipmentSchema }),
 	updateEquipment,
 );
-router.delete('/equipment/:id', deleteEquipment);
+router.delete(
+	'/equipment/:id',
+	validate({ params: idParamSchema }),
+	deleteEquipment,
+);
 router.get(
 	'/equipment/:id/requests',
-	validate({ query: getRequestsQuerySchema }),
+	validate({ params: idParamSchema, query: getRequestsQuerySchema }),
 	getEquipmentRequests,
 );
-router.get('/equipment/:id/weather', getEquipmentWeather);
+router.get(
+	'/equipment/:id/weather',
+	validate({ params: idParamSchema }),
+	getEquipmentWeather,
+);
 
 export default router;

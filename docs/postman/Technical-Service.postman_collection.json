@@ -112,7 +112,7 @@
 					]
 				},
 				{
-					"name": "POST /equipment — invalid body (400)",
+					"name": "POST /equipment — invalid body (422)",
 					"request": {
 						"method": "POST",
 						"header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -131,7 +131,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test('status 400', () => pm.response.to.have.status(400));",
+									"pm.test('status 422', () => pm.response.to.have.status(422));",
 									"pm.test('error details name the invalid field', () => {",
 									"    const json = pm.response.json();",
 									"    pm.expect(json.errors).to.be.an('array').that.is.not.empty;",
@@ -232,9 +232,9 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/equipment/unknown-id",
+							"raw": "{{baseUrl}}/equipment/00000000-0000-0000-0000-000000000000",
 							"host": ["{{baseUrl}}"],
-							"path": ["equipment", "unknown-id"]
+							"path": ["equipment", "00000000-0000-0000-0000-000000000000"]
 						}
 					},
 					"event": [
@@ -245,6 +245,33 @@
 									"pm.test('status 404', () => pm.response.to.have.status(404));",
 									"pm.test('unified error shape', () => {",
 									"    const json = pm.response.json();",
+									"    pm.expect(json.requestId).to.be.a('string');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /equipment/:id — malformed id (422)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/equipment/unknown-id",
+							"host": ["{{baseUrl}}"],
+							"path": ["equipment", "unknown-id"]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 422', () => pm.response.to.have.status(422));",
+									"pm.test('unified error shape', () => {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json.status).to.eql(422);",
 									"    pm.expect(json.requestId).to.be.a('string');",
 									"});"
 								]
@@ -290,6 +317,29 @@
 						"header": [{ "key": "Content-Type", "value": "application/json" }],
 						"body": { "mode": "raw", "raw": "{\n  \"status\": \"fault\"\n}" },
 						"url": {
+							"raw": "{{baseUrl}}/equipment/00000000-0000-0000-0000-000000000000",
+							"host": ["{{baseUrl}}"],
+							"path": ["equipment", "00000000-0000-0000-0000-000000000000"]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 404', () => pm.response.to.have.status(404));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "PATCH /equipment/:id — malformed id (422)",
+					"request": {
+						"method": "PATCH",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": { "mode": "raw", "raw": "{\n  \"status\": \"fault\"\n}" },
+						"url": {
 							"raw": "{{baseUrl}}/equipment/unknown-id",
 							"host": ["{{baseUrl}}"],
 							"path": ["equipment", "unknown-id"]
@@ -300,7 +350,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test('status 404', () => pm.response.to.have.status(404));"
+									"pm.test('status 422', () => pm.response.to.have.status(422));"
 								]
 							}
 						}
@@ -535,7 +585,7 @@
 					]
 				},
 				{
-					"name": "POST /requests — invalid body (400)",
+					"name": "POST /requests — invalid body (422)",
 					"request": {
 						"method": "POST",
 						"header": [{ "key": "Content-Type", "value": "application/json" }],
@@ -554,7 +604,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test('status 400', () => pm.response.to.have.status(400));",
+									"pm.test('status 422', () => pm.response.to.have.status(422));",
 									"pm.test('names the invalid field', () => {",
 									"    pm.expect(pm.response.json().errors[0].field).to.eql('title');",
 									"});"
@@ -650,6 +700,28 @@
 						"method": "GET",
 						"header": [],
 						"url": {
+							"raw": "{{baseUrl}}/requests/00000000-0000-0000-0000-000000000000",
+							"host": ["{{baseUrl}}"],
+							"path": ["requests", "00000000-0000-0000-0000-000000000000"]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 404', () => pm.response.to.have.status(404));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /requests/:id — malformed id (422)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
 							"raw": "{{baseUrl}}/requests/unknown-id",
 							"host": ["{{baseUrl}}"],
 							"path": ["requests", "unknown-id"]
@@ -660,7 +732,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test('status 404', () => pm.response.to.have.status(404));"
+									"pm.test('status 422', () => pm.response.to.have.status(422));"
 								]
 							}
 						}
@@ -824,6 +896,28 @@
 						"method": "DELETE",
 						"header": [],
 						"url": {
+							"raw": "{{baseUrl}}/requests/00000000-0000-0000-0000-000000000000",
+							"host": ["{{baseUrl}}"],
+							"path": ["requests", "00000000-0000-0000-0000-000000000000"]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 404', () => pm.response.to.have.status(404));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "DELETE /requests/:id — malformed id (422)",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
 							"raw": "{{baseUrl}}/requests/unknown-id",
 							"host": ["{{baseUrl}}"],
 							"path": ["requests", "unknown-id"]
@@ -834,7 +928,7 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"pm.test('status 404', () => pm.response.to.have.status(404));"
+									"pm.test('status 422', () => pm.response.to.have.status(422));"
 								]
 							}
 						}
