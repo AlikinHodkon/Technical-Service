@@ -60,14 +60,14 @@ describe('POST /api/requests', () => {
 		expect(response.status).toBe(404);
 	});
 
-	it('returns 400 when title is too short', async () => {
+	it('returns 422 when title is too short', async () => {
 		const equipment = await createEquipment();
 
 		const response = await createRequestFor(equipment.body.id, {
 			title: 'abc',
 		});
 
-		expect(response.status).toBe(400);
+		expect(response.status).toBe(422);
 	});
 });
 
@@ -112,9 +112,17 @@ describe('GET /api/requests/:id', () => {
 	});
 
 	it('returns 404 for unknown id', async () => {
-		const response = await request(app).get('/api/requests/unknown-id');
+		const response = await request(app).get(
+			`/api/requests/${crypto.randomUUID()}`,
+		);
 
 		expect(response.status).toBe(404);
+	});
+
+	it('returns 422 for a malformed id', async () => {
+		const response = await request(app).get('/api/requests/unknown-id');
+
+		expect(response.status).toBe(422);
 	});
 });
 
@@ -146,10 +154,18 @@ describe('PATCH /api/requests/:id', () => {
 
 	it('returns 404 for unknown id', async () => {
 		const response = await request(app)
-			.patch('/api/requests/unknown-id')
+			.patch(`/api/requests/${crypto.randomUUID()}`)
 			.send({ priority: 'high' });
 
 		expect(response.status).toBe(404);
+	});
+
+	it('returns 422 for a malformed id', async () => {
+		const response = await request(app)
+			.patch('/api/requests/unknown-id')
+			.send({ priority: 'high' });
+
+		expect(response.status).toBe(422);
 	});
 });
 
@@ -193,10 +209,18 @@ describe('PATCH /api/requests/:id/status', () => {
 
 	it('returns 404 for unknown id', async () => {
 		const response = await request(app)
-			.patch('/api/requests/unknown-id/status')
+			.patch(`/api/requests/${crypto.randomUUID()}/status`)
 			.send({ status: 'in_progress' });
 
 		expect(response.status).toBe(404);
+	});
+
+	it('returns 422 for a malformed id', async () => {
+		const response = await request(app)
+			.patch('/api/requests/unknown-id/status')
+			.send({ status: 'in_progress' });
+
+		expect(response.status).toBe(422);
 	});
 });
 
@@ -217,8 +241,16 @@ describe('DELETE /api/requests/:id', () => {
 	});
 
 	it('returns 404 for unknown id', async () => {
-		const response = await request(app).delete('/api/requests/unknown-id');
+		const response = await request(app).delete(
+			`/api/requests/${crypto.randomUUID()}`,
+		);
 
 		expect(response.status).toBe(404);
+	});
+
+	it('returns 422 for a malformed id', async () => {
+		const response = await request(app).delete('/api/requests/unknown-id');
+
+		expect(response.status).toBe(422);
 	});
 });

@@ -45,7 +45,7 @@ export class ValidationError extends AppError {
 		issues: { path: string[]; code: string; message: string }[];
 	}) {
 		super('Ошибка валидации', {
-			status: 400,
+			status: 422,
 			code: 'validation_failed',
 			details: zodError.issues.map((i) => ({
 				field: i.path.join('.') || '(корень)',

@@ -53,12 +53,12 @@ describe('POST /api/equipment', () => {
 		expect(response.status).toBe(409);
 	});
 
-	it('returns 400 when installedAt is in the future', async () => {
+	it('returns 422 when installedAt is in the future', async () => {
 		const response = await createEquipment({
 			installedAt: '2099-01-01T00:00:00.000Z',
 		});
 
-		expect(response.status).toBe(400);
+		expect(response.status).toBe(422);
 		expect(response.body.errors[0].field).toBe('installedAt');
 	});
 });
@@ -126,9 +126,17 @@ describe('GET /api/equipment/:id', () => {
 	});
 
 	it('returns 404 for unknown id', async () => {
-		const response = await request(app).get('/api/equipment/unknown-id');
+		const response = await request(app).get(
+			`/api/equipment/${crypto.randomUUID()}`,
+		);
 
 		expect(response.status).toBe(404);
+	});
+
+	it('returns 422 for a malformed id', async () => {
+		const response = await request(app).get('/api/equipment/unknown-id');
+
+		expect(response.status).toBe(422);
 	});
 });
 
@@ -158,10 +166,18 @@ describe('PATCH /api/equipment/:id', () => {
 
 	it('returns 404 for unknown id', async () => {
 		const response = await request(app)
-			.patch('/api/equipment/unknown-id')
+			.patch(`/api/equipment/${crypto.randomUUID()}`)
 			.send({ status: 'maintenance' });
 
 		expect(response.status).toBe(404);
+	});
+
+	it('returns 422 for a malformed id', async () => {
+		const response = await request(app)
+			.patch('/api/equipment/unknown-id')
+			.send({ status: 'maintenance' });
+
+		expect(response.status).toBe(422);
 	});
 
 	it('returns 409 when new serialNumber is already taken', async () => {
@@ -192,9 +208,17 @@ describe('DELETE /api/equipment/:id', () => {
 	});
 
 	it('returns 404 for unknown id', async () => {
-		const response = await request(app).delete('/api/equipment/unknown-id');
+		const response = await request(app).delete(
+			`/api/equipment/${crypto.randomUUID()}`,
+		);
 
 		expect(response.status).toBe(404);
+	});
+
+	it('returns 422 for a malformed id', async () => {
+		const response = await request(app).delete('/api/equipment/unknown-id');
+
+		expect(response.status).toBe(422);
 	});
 
 	it('returns 409 when equipment has open requests', async () => {
@@ -258,10 +282,18 @@ describe('GET /api/equipment/:id/requests', () => {
 
 	it('returns 404 for unknown equipment id', async () => {
 		const response = await request(app).get(
-			'/api/equipment/unknown-id/requests',
+			`/api/equipment/${crypto.randomUUID()}/requests`,
 		);
 
 		expect(response.status).toBe(404);
+	});
+
+	it('returns 422 for a malformed equipment id', async () => {
+		const response = await request(app).get(
+			'/api/equipment/unknown-id/requests',
+		);
+
+		expect(response.status).toBe(422);
 	});
 });
 
@@ -317,10 +349,22 @@ describe('GET /api/equipment/:id/weather', () => {
 		vi.stubGlobal('fetch', fetchMock);
 
 		const response = await request(app).get(
-			'/api/equipment/unknown-id/weather',
+			`/api/equipment/${crypto.randomUUID()}/weather`,
 		);
 
 		expect(response.status).toBe(404);
+		expect(fetchMock).not.toHaveBeenCalled();
+	});
+
+	it('returns 422 for a malformed equipment id without calling the weather API', async () => {
+		const fetchMock = vi.fn();
+		vi.stubGlobal('fetch', fetchMock);
+
+		const response = await request(app).get(
+			'/api/equipment/unknown-id/weather',
+		);
+
+		expect(response.status).toBe(422);
 		expect(fetchMock).not.toHaveBeenCalled();
 	});
 
