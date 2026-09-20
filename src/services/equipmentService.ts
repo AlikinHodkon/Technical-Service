@@ -7,8 +7,9 @@ import {
 	equipmentSaveData,
 	equipmentUpdateData,
 } from '../repositories/equipmentRepositories.ts';
-import { requestsFindByEquipmentId } from '../repositories/requestsRepositories.ts';
 import type { EquipmentType } from '../types.ts';
+import { paginate, sortByField } from './listQuery.ts';
+import { hasOpenRequestsForEquipment } from './requestsService.ts';
 
 const SORTABLE_FIELDS = [
 	'name',
@@ -17,8 +18,6 @@ const SORTABLE_FIELDS = [
 	'status',
 	'installedAt',
 ] as const;
-
-const CLOSED_REQUEST_STATUSES = ['done', 'rejected'];
 
 export type EquipmentListQuery = {
 	status?: string;
@@ -44,42 +43,18 @@ const matchesFilters = (equipment: EquipmentType, query: EquipmentListQuery) =>
 	(!query.status || equipment.status === query.status) &&
 	(!query.type || equipment.type === query.type);
 
-const sortEquipment = (list: EquipmentType[], sort: string | undefined) => {
-	if (!sort) return list;
-
-	const isDescending = sort.startsWith('-');
-	const field = (
-		isDescending ? sort.slice(1) : sort
-	) as (typeof SORTABLE_FIELDS)[number];
-	if (!SORTABLE_FIELDS.includes(field)) return list;
-
-	return list.toSorted((a, b) => {
-		const direction = a[field] < b[field] ? -1 : a[field] > b[field] ? 1 : 0;
-		return isDescending ? -direction : direction;
-	});
-};
-
 export const equipmentServiceGetAll = async (query: EquipmentListQuery) => {
 	const data = await equipmentGetAllData();
 
 	const filtered = data.filter((equipment) => matchesFilters(equipment, query));
-	const sorted = sortEquipment(filtered, query.sort);
+	const sorted = sortByField(filtered, query.sort, SORTABLE_FIELDS);
 
-	const page = Math.max(Number.parseInt(query.page ?? '1', 10) || 1, 1);
-	const limit = Math.max(Number.parseInt(query.limit ?? '20', 10) || 1, 1);
-	const start = (page - 1) * limit;
-
-	return {
-		data: sorted.slice(start, start + limit),
-		total: sorted.length,
-		page,
-		limit,
-	};
+	return paginate(sorted, query.page, query.limit);
 };
 
 export const equipmentServiceGetById = async (id: string) => {
 	const equipment = await equipmentFindById(id);
-	if (!equipment) throw new NotFoundError('Оборудование');
+	if (!equipment) throw new NotFoundError('Оборудование', 'не найдено');
 	return equipment;
 };
 
@@ -88,7 +63,7 @@ export const equipmentServiceUpdate = async (
 	body: Partial<Omit<EquipmentType, 'id'>>,
 ) => {
 	const existing = await equipmentFindById(id);
-	if (!existing) throw new NotFoundError('Оборудование');
+	if (!existing) throw new NotFoundError('Оборудование', 'не найдено');
 
 	const { id: _ignoredId, ...updates } = body as Partial<EquipmentType>;
 
@@ -105,13 +80,9 @@ export const equipmentServiceUpdate = async (
 
 export const equipmentServiceDelete = async (id: string) => {
 	const existing = await equipmentFindById(id);
-	if (!existing) throw new NotFoundError('Оборудование');
+	if (!existing) throw new NotFoundError('Оборудование', 'не найдено');
 
-	const requests = await requestsFindByEquipmentId(id);
-	const hasOpenRequests = requests.some(
-		(request) => !CLOSED_REQUEST_STATUSES.includes(request.status),
-	);
-	if (hasOpenRequests) {
+	if (await hasOpenRequestsForEquipment(id)) {
 		throw new ConflictError(
 			'Нельзя удалить оборудование, по которому есть незакрытые заявки',
 		);

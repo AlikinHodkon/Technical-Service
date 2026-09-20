@@ -4,6 +4,7 @@ import {
 	deleteEquipment,
 	getAllEquipment,
 	getEquipmentById,
+	getEquipmentRequests,
 	updateEquipment,
 } from '../controllers/equipment.ts';
 import { validate } from '../middlewares/index.ts';
@@ -12,6 +13,7 @@ import {
 	getEquipmentQuerySchema,
 	updateEquipmentSchema,
 } from '../validators/equipment.validator.ts';
+import { getRequestsQuerySchema } from '../validators/requests.validator.ts';
 
 const router = Router();
 
@@ -32,5 +34,10 @@ router.patch(
 	updateEquipment,
 );
 router.delete('/equipment/:id', deleteEquipment);
+router.get(
+	'/equipment/:id/requests',
+	validate({ query: getRequestsQuerySchema }),
+	getEquipmentRequests,
+);
 
 export default router;

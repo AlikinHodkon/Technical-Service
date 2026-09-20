@@ -25,3 +25,29 @@ export const readJsonArray = async <T>(filePath: PathLike): Promise<T[]> => {
 export const writeJsonArray = async <T>(filePath: PathLike, data: T[]) => {
 	await writeFile(filePath, JSON.stringify(data, null, 2));
 };
+
+const locks = new Map<string, Promise<void>>();
+
+export const withFileLock = async <T>(
+	filePath: PathLike,
+	fn: () => Promise<T>,
+): Promise<T> => {
+	const key = String(filePath);
+	const previous = locks.get(key) ?? Promise.resolve();
+
+	let release = () => {};
+	const next = new Promise<void>((resolve) => {
+		release = resolve;
+	});
+	locks.set(
+		key,
+		previous.then(() => next),
+	);
+
+	await previous;
+	try {
+		return await fn();
+	} finally {
+		release();
+	}
+};

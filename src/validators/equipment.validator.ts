@@ -20,3 +20,7 @@ export const getEquipmentQuerySchema = z.object({
 	sort: z.coerce.string().optional(),
 	limit: z.coerce.string().default('20'),
 });
+
+export type CreateEquipmentBody = z.infer<typeof createEquipmentSchema>;
+export type UpdateEquipmentBody = z.infer<typeof updateEquipmentSchema>;
+export type GetEquipmentQuery = z.infer<typeof getEquipmentQuerySchema>;

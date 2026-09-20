@@ -198,3 +198,48 @@ describe('DELETE /api/equipment/:id', () => {
 		expect(response.status).toBe(409);
 	});
 });
+
+describe('GET /api/equipment/:id/requests', () => {
+	it('returns requests scoped to the equipment', async () => {
+		const equipmentA = await createEquipment({ serialNumber: 'WT-2024-0001' });
+		const equipmentB = await createEquipment({ serialNumber: 'WT-2024-0002' });
+		await writeRequests([
+			{
+				id: 'req-1',
+				equipmentId: equipmentA.body.id,
+				title: 'Заменить датчик',
+				description: '',
+				priority: 'medium',
+				status: 'new',
+				createdAt: '2024-06-01T00:00:00.000Z',
+				updatedAt: '2024-06-01T00:00:00.000Z',
+			},
+			{
+				id: 'req-2',
+				equipmentId: equipmentB.body.id,
+				title: 'Проверить инвертор',
+				description: '',
+				priority: 'low',
+				status: 'new',
+				createdAt: '2024-06-01T00:00:00.000Z',
+				updatedAt: '2024-06-01T00:00:00.000Z',
+			},
+		]);
+
+		const response = await request(app).get(
+			`/api/equipment/${equipmentA.body.id}/requests`,
+		);
+
+		expect(response.status).toBe(200);
+		expect(response.body.total).toBe(1);
+		expect(response.body.data[0].id).toBe('req-1');
+	});
+
+	it('returns 404 for unknown equipment id', async () => {
+		const response = await request(app).get(
+			'/api/equipment/unknown-id/requests',
+		);
+
+		expect(response.status).toBe(404);
+	});
+});

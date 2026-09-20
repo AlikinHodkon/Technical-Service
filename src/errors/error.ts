@@ -29,8 +29,8 @@ export class AppError extends Error {
 }
 
 export class NotFoundError extends AppError {
-	constructor(what = 'Ресурс') {
-		super(`${what} не найден`, { status: 404, code: 'not_found' });
+	constructor(what = 'Ресурс', verb = 'не найден') {
+		super(`${what} ${verb}`, { status: 404, code: 'not_found' });
 	}
 }
 

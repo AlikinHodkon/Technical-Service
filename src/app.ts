@@ -5,7 +5,11 @@ import {
 	errorHandler,
 	httpLogger,
 } from './middlewares/index.ts';
-import { equipmentRouter, healthRouter } from './routes/index.ts';
+import {
+	equipmentRouter,
+	healthRouter,
+	requestsRouter,
+} from './routes/index.ts';
 
 const app = express();
 
@@ -15,6 +19,7 @@ app.use(express.json({ limit: '100kb' }));
 
 app.use('/api', healthRouter);
 app.use('/api', equipmentRouter);
+app.use('/api', requestsRouter);
 app.use('/', () => {
 	throw new NotFoundError('Маршрут');
 });
