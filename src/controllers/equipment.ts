@@ -7,6 +7,7 @@ import {
 	equipmentServiceUpdate,
 } from '../services/equipmentService.ts';
 import { requestsServiceGetByEquipmentId } from '../services/requestsService.ts';
+import { weatherServiceGetForEquipment } from '../services/weatherService.ts';
 import type {
 	CreateEquipmentBody,
 	GetEquipmentQuery,
@@ -54,5 +55,10 @@ export const getEquipmentRequests = async (req: Request, res: Response) => {
 		req.params.id as string,
 		req.valid.query as GetRequestsQuery,
 	);
+	return res.status(200).json(result);
+};
+
+export const getEquipmentWeather = async (req: Request, res: Response) => {
+	const result = await weatherServiceGetForEquipment(req.params.id as string);
 	return res.status(200).json(result);
 };
