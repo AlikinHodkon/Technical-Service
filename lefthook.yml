@@ -4,3 +4,5 @@ pre-commit:
       run: pnpm typecheck
     tests:
       run: pnpm test
+    lint:
+      run: pnpm lint
