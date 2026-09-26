@@ -11,6 +11,9 @@
 		"noEmit": true,
 		"allowImportingTsExtensions": true,
 
+		"experimentalDecorators": true,
+		"emitDecoratorMetadata": true,
+
 		"noUncheckedIndexedAccess": true,
 
 		"strict": true,
