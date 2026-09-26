@@ -6,6 +6,9 @@
 	"scripts": {
 		"start": "tsx --env-file=.env src/server.ts",
 		"dev": "tsx --env-file=.env --watch src/server.ts",
+		"db:migrate": "node --env-file=.env node_modules/sequelize-cli/lib/sequelize db:migrate",
+		"db:migrate:undo": "node --env-file=.env node_modules/sequelize-cli/lib/sequelize db:migrate:undo",
+		"db:migrate:undo:all": "node --env-file=.env node_modules/sequelize-cli/lib/sequelize db:migrate:undo:all",
 		"test": "vitest run",
 		"test:watch": "vitest",
 		"typecheck": "tsc --noEmit",
