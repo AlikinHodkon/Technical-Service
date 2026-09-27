@@ -12,8 +12,6 @@ services:
       - POSTGRES_HOST=db
     ports:
       - "${PORT:-3000}:${PORT:-3000}"
-    volumes:
-      - ./storage:/app/storage
 
   db:
     image: postgres:18-alpine
