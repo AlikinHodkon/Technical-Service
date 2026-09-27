@@ -496,3 +496,36 @@ pnpm dev
 ```
 
 Откат: `pnpm db:seed:undo:all`, затем `pnpm db:migrate:undo:all` (откатывает все миграции в обратном порядке, включая удаление роли приложения); `pnpm db:migrate:undo` — откатить только последнюю. Повторный `pnpm db:migrate` после полного отката проходит без ошибок — цикл проверен вручную.
+
+### Индексы и производительность
+
+Миграция `20260927000001-add-performance-indexes` добавляет пять индексов под реальные сценарии выборок:
+
+| Индекс | Таблица | Колонка | Сценарий |
+|---|---|---|---|
+| `idx_maintenance_requests_status_code` | `maintenance_requests` | `status_code` | `GET /requests?status=...` — фильтр по статусу |
+| `idx_maintenance_requests_equipment_id` | `maintenance_requests` | `equipment_id` | `GET /equipment/:id/requests`, JOIN в отчёте и сводке площадки |
+| `idx_maintenance_requests_created_at` | `maintenance_requests` | `created_at` | Сортировка по умолчанию (`ORDER BY created_at DESC`) и фильтры `dateFrom`/`dateTo` |
+| `idx_request_status_history_request_id` | `request_status_history` | `request_id` | `GET /requests/:id/history` |
+| `idx_request_assignees_technician_id` | `request_assignees` | `technician_id` | JOIN при проверке специалистов в транзакции назначения бригады |
+
+**EXPLAIN ANALYZE до применения миграции** (`WHERE equipment_id = ?`):
+
+```
+Seq Scan on maintenance_requests  (cost=0.00..1.00 rows=1 width=216)
+                                   (actual time=0.026..0.036 rows=4 loops=1)
+  Filter: (equipment_id = '...'::uuid)
+  Rows Removed by Filter: 20
+Planning Time: 1.669 ms  Execution Time: 0.147 ms
+```
+
+**EXPLAIN ANALYZE после** (с `SET enable_seqscan = off` — демонстрация пути через индекс):
+
+```
+Index Scan using idx_maintenance_requests_equipment_id on maintenance_requests
+              (cost=0.14..8.15 rows=1 width=216) (actual time=0.151..0.154 rows=4 loops=1)
+  Index Cond: (equipment_id = '...'::uuid)
+Planning Time: 2.728 ms  Execution Time: 0.242 ms
+```
+
+На тестовом датасете (24 строки) планировщик выбирает Seq Scan без `enable_seqscan = off` — это ожидаемо: при малом числе строк последовательное сканирование одной страницы дешевле, чем переход по индексу. Индекс начинает применяться автоматически при росте таблицы; `enable_seqscan = off` используется только для демонстрации пути исполнения.
