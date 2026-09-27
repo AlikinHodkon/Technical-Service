@@ -1,14 +1,16 @@
 import type { Request, Response } from 'express';
+import type { MaintenanceRequest } from '../../models/maintenance-request.model.ts';
 import { AppError } from '../errors/error.ts';
 import {
 	requestsServiceCreate,
 	requestsServiceDelete,
 	requestsServiceGetAll,
 	requestsServiceGetById,
+	requestsServiceGetHistory,
 	requestsServiceUpdate,
 	requestsServiceUpdateStatus,
 } from '../services/requestsService.ts';
-import type { ErrorDetail, RequestType } from '../types.ts';
+import type { ErrorDetail } from '../types.ts';
 import {
 	type BulkCreateRequestsBody,
 	type CreateRequestBody,
@@ -19,7 +21,7 @@ import {
 } from '../validators/requests.validator.ts';
 
 type BulkImportResult =
-	| { index: number; status: 'created'; data: RequestType }
+	| { index: number; status: 'created'; data: MaintenanceRequest }
 	| { index: number; status: 'error'; errors: ErrorDetail[] };
 
 export const createRequest = async (req: Request, res: Response) => {
@@ -98,10 +100,9 @@ export const updateRequest = async (req: Request, res: Response) => {
 };
 
 export const updateRequestStatus = async (req: Request, res: Response) => {
-	const { status } = req.valid.body as UpdateRequestStatusBody;
 	const requestItem = await requestsServiceUpdateStatus(
 		req.params.id as string,
-		status,
+		req.valid.body as UpdateRequestStatusBody,
 	);
 	return res.status(200).json(requestItem);
 };
@@ -109,4 +110,9 @@ export const updateRequestStatus = async (req: Request, res: Response) => {
 export const deleteRequest = async (req: Request, res: Response) => {
 	await requestsServiceDelete(req.params.id as string);
 	return res.status(204).send();
+};
+
+export const getRequestHistory = async (req: Request, res: Response) => {
+	const history = await requestsServiceGetHistory(req.params.id as string);
+	return res.status(200).json(history);
 };

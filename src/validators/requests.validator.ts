@@ -1,25 +1,33 @@
 import * as z from 'zod';
+import { REQUEST_PRIORITY_CODES, REQUEST_STATUS_CODES } from './lookups.ts';
 
-const PRIORITY_VALUES = ['low', 'medium', 'high', 'critical'] as const;
-const STATUS_VALUES = ['new', 'in_progress', 'done', 'rejected'] as const;
+const SORTABLE_FIELDS = [
+	'createdAt',
+	'updatedAt',
+	'plannedAt',
+	'priority',
+	'title',
+] as const;
 
 export const createRequestSchema = z.object({
-	equipmentId: z.string(),
+	equipmentId: z.uuid(),
 	title: z.string().min(5).max(120),
 	description: z.string().max(2000).optional(),
-	priority: z.enum(PRIORITY_VALUES),
+	priority: z.enum(REQUEST_PRIORITY_CODES),
 	plannedAt: z.iso.datetime().optional(),
+	author: z.string().min(1).max(200),
 });
 
 export const updateRequestSchema = z.object({
 	title: z.string().min(5).max(120).optional(),
 	description: z.string().max(2000).optional(),
-	priority: z.enum(PRIORITY_VALUES).optional(),
+	priority: z.enum(REQUEST_PRIORITY_CODES).optional(),
 	plannedAt: z.iso.datetime().optional(),
 });
 
 export const updateRequestStatusSchema = z.object({
-	status: z.enum(STATUS_VALUES),
+	status: z.enum(REQUEST_STATUS_CODES),
+	author: z.string().min(1).max(200),
 });
 
 export const bulkCreateRequestsSchema = z.object({
@@ -27,14 +35,15 @@ export const bulkCreateRequestsSchema = z.object({
 });
 
 export const getRequestsQuerySchema = z.object({
-	status: z.enum(STATUS_VALUES).optional(),
-	priority: z.enum(PRIORITY_VALUES).optional(),
-	equipmentId: z.string().optional(),
+	status: z.enum(REQUEST_STATUS_CODES).optional(),
+	priority: z.enum(REQUEST_PRIORITY_CODES).optional(),
+	equipmentId: z.uuid().optional(),
 	dateFrom: z.iso.datetime().optional(),
 	dateTo: z.iso.datetime().optional(),
-	sort: z.coerce.string().optional(),
-	page: z.coerce.string().default('1'),
-	limit: z.coerce.string().default('20'),
+	sort: z.enum(SORTABLE_FIELDS).optional().default('createdAt'),
+	order: z.enum(['ASC', 'DESC']).optional().default('DESC'),
+	page: z.coerce.number().int().positive().default(1),
+	limit: z.coerce.number().int().positive().max(100).default(20),
 });
 
 export type CreateRequestBody = z.infer<typeof createRequestSchema>;

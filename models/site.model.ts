@@ -11,7 +11,7 @@ import {
 } from 'sequelize-typescript';
 import { Equipment } from './equipment.model.ts';
 
-@Table({ tableName: 'sites', timestamps: false })
+@Table({ tableName: 'sites', timestamps: false, underscored: true })
 export class Site extends Model {
 	@PrimaryKey
 	@Default(DataType.UUIDV4)

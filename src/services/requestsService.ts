@@ -1,145 +1,198 @@
+import { ForeignKeyConstraintError, Op, type WhereOptions } from 'sequelize';
+import { MaintenanceRequest } from '../../models/maintenance-request.model.ts';
+import { RequestAssignee } from '../../models/request-assignee.model.ts';
+import { RequestStatusHistory } from '../../models/request-status-history.model.ts';
+import { sequelize } from '../config/db.ts';
 import { ConflictError, NotFoundError } from '../errors/error.ts';
 import { equipmentFindById } from '../repositories/equipmentRepositories.ts';
 import {
 	requestsDeleteData,
 	requestsFindByEquipmentId,
 	requestsFindById,
-	requestsGetAllData,
-	requestsMutateOne,
+	requestsFindMany,
 	requestsSaveData,
 	requestsUpdateData,
 } from '../repositories/requestsRepositories.ts';
-import type { RequestType } from '../types.ts';
-import { paginate, sortByField } from './listQuery.ts';
+import type { RequestStatusCode } from '../validators/lookups.ts';
+import type {
+	CreateRequestBody,
+	GetRequestsQuery,
+	UpdateRequestBody,
+	UpdateRequestStatusBody,
+} from '../validators/requests.validator.ts';
 
-const CLOSED_REQUEST_STATUSES: RequestType['status'][] = ['done', 'rejected'];
+const CLOSED_REQUEST_STATUSES: RequestStatusCode[] = ['done', 'rejected'];
 
-const STATUS_TRANSITIONS: Record<
-	RequestType['status'],
-	RequestType['status'][]
-> = {
+const STATUS_TRANSITIONS: Record<RequestStatusCode, RequestStatusCode[]> = {
 	new: ['in_progress', 'rejected'],
 	in_progress: ['done', 'rejected'],
 	done: [],
 	rejected: [],
 };
 
-const SORTABLE_FIELDS = [
-	'createdAt',
-	'updatedAt',
-	'plannedAt',
-	'priority',
-	'title',
-] as const;
-
-const PRIORITY_RANK: Record<RequestType['priority'], number> = {
-	low: 0,
-	medium: 1,
-	high: 2,
-	critical: 3,
+// Внешний контракт использует priority/status; priorityCode/statusCode
+// заняты в модели под belongsTo-ассоциации, маппинг живёт тут, на границе.
+const SORT_FIELD_MAP: Record<string, string> = {
+	priority: 'priorityCode',
 };
 
-export type RequestListQuery = {
-	status?: string;
-	priority?: string;
-	equipmentId?: string;
-	dateFrom?: string;
-	dateTo?: string;
-	sort?: string;
-	page?: string;
-	limit?: string;
+const toRequestResponse = (request: MaintenanceRequest) => {
+	const { priorityCode, statusCode, ...rest } = request.toJSON();
+	return { ...rest, priority: priorityCode, status: statusCode };
 };
 
-const matchesFilters = (request: RequestType, query: RequestListQuery) =>
-	(!query.status || request.status === query.status) &&
-	(!query.priority || request.priority === query.priority) &&
-	(!query.equipmentId || request.equipmentId === query.equipmentId) &&
-	(!query.dateFrom || request.createdAt >= query.dateFrom) &&
-	(!query.dateTo || request.createdAt <= query.dateTo);
-
-const sortRequests = (list: RequestType[], sort: string | undefined) =>
-	sortByField(list, sort, SORTABLE_FIELDS, (item, field) =>
-		field === 'priority' ? PRIORITY_RANK[item.priority] : (item[field] ?? ''),
-	);
-
-export const requestsServiceCreate = async (
-	body: Omit<RequestType, 'id' | 'status' | 'createdAt' | 'updatedAt'>,
-) => {
+export const requestsServiceCreate = async (body: CreateRequestBody) => {
 	const equipment = await equipmentFindById(body.equipmentId);
 	if (!equipment) throw new NotFoundError('Оборудование', 'не найдено');
 
-	const now = new Date().toISOString();
-	const newRequest: RequestType = {
-		id: crypto.randomUUID(),
-		...body,
-		status: 'new',
-		createdAt: now,
-		updatedAt: now,
-	};
-	return requestsSaveData(newRequest);
+	const created = await requestsSaveData({
+		equipmentId: body.equipmentId,
+		title: body.title,
+		description: body.description ?? null,
+		priorityCode: body.priority,
+		plannedAt: body.plannedAt ? new Date(body.plannedAt) : null,
+		author: body.author,
+		createdAt: new Date(),
+		updatedAt: new Date(),
+	});
+	return toRequestResponse(created);
 };
 
-export const requestsServiceGetAll = async (query: RequestListQuery) => {
-	const data = await requestsGetAllData();
+export const requestsServiceGetAll = async (query: GetRequestsQuery) => {
+	const where: WhereOptions = {};
+	if (query.status) where.statusCode = query.status;
+	if (query.priority) where.priorityCode = query.priority;
+	if (query.equipmentId) where.equipmentId = query.equipmentId;
+	if (query.dateFrom || query.dateTo) {
+		where.createdAt = {};
+		if (query.dateFrom) where.createdAt[Op.gte] = query.dateFrom;
+		if (query.dateTo) where.createdAt[Op.lte] = query.dateTo;
+	}
 
-	const filtered = data.filter((request) => matchesFilters(request, query));
-	const sorted = sortRequests(filtered, query.sort);
-
-	return paginate(sorted, query.page, query.limit);
+	const sortField = SORT_FIELD_MAP[query.sort] ?? query.sort;
+	const { count, rows } = await requestsFindMany({
+		where,
+		order: [[sortField, query.order]],
+		limit: query.limit,
+		offset: (query.page - 1) * query.limit,
+	});
+	return {
+		data: rows.map(toRequestResponse),
+		total: count,
+		page: query.page,
+		limit: query.limit,
+	};
 };
 
 export const requestsServiceGetById = async (id: string) => {
 	const requestItem = await requestsFindById(id);
 	if (!requestItem) throw new NotFoundError('Заявка', 'не найдена');
-	return requestItem;
+	return toRequestResponse(requestItem);
 };
 
 export const requestsServiceUpdate = async (
 	id: string,
-	body: Partial<
-		Pick<RequestType, 'title' | 'description' | 'priority' | 'plannedAt'>
-	>,
+	body: UpdateRequestBody,
 ) => {
+	const { priority, ...rest } = body;
 	const updated = await requestsUpdateData(id, {
-		...body,
-		updatedAt: new Date().toISOString(),
+		...rest,
+		...(priority !== undefined && { priorityCode: priority }),
+		plannedAt: body.plannedAt ? new Date(body.plannedAt) : undefined,
+		updatedAt: new Date(),
 	});
 	if (!updated) throw new NotFoundError('Заявка', 'не найдена');
-	return updated;
+	return toRequestResponse(updated);
 };
 
 export const requestsServiceUpdateStatus = async (
 	id: string,
-	status: RequestType['status'],
+	body: UpdateRequestStatusBody,
 ) => {
-	const updated = await requestsMutateOne(id, (current) => {
-		const allowedTransitions = STATUS_TRANSITIONS[current.status];
-		if (!allowedTransitions.includes(status)) {
+	return sequelize.transaction(async (t) => {
+		// Лочим саму строку заявки без include — Postgres не разрешает
+		// FOR UPDATE вместе с LEFT JOIN на BelongsToMany (нулевая сторона
+		// внешнего джойна), поэтому число исполнителей считаем отдельным
+		// запросом в той же транзакции.
+		const current = await MaintenanceRequest.findByPk(id, {
+			transaction: t,
+			lock: t.LOCK.UPDATE,
+		});
+		if (!current) throw new NotFoundError('Заявка', 'не найдена');
+
+		const allowedTransitions =
+			STATUS_TRANSITIONS[current.statusCode as RequestStatusCode];
+		if (!allowedTransitions?.includes(body.status)) {
 			throw new ConflictError(
-				`Недопустимый переход статуса: ${current.status} → ${status}`,
+				`Недопустимый переход статуса: ${current.statusCode} → ${body.status}`,
 			);
 		}
-		return { ...current, status, updatedAt: new Date().toISOString() };
+
+		if (body.status === 'in_progress') {
+			const assigneeCount = await RequestAssignee.count({
+				where: { requestId: id },
+				transaction: t,
+			});
+			if (assigneeCount === 0) {
+				throw new ConflictError(
+					'Нельзя перевести заявку в работу без назначенных исполнителей',
+				);
+			}
+		}
+
+		const oldStatusCode = current.statusCode;
+		await current.update(
+			{ statusCode: body.status, updatedAt: new Date() },
+			{ transaction: t },
+		);
+		await RequestStatusHistory.create(
+			{
+				requestId: id,
+				oldStatusCode,
+				newStatusCode: body.status,
+				author: body.author,
+				changedAt: new Date(),
+			},
+			{ transaction: t },
+		);
+		return toRequestResponse(current);
 	});
-	if (!updated) throw new NotFoundError('Заявка', 'не найдена');
-	return updated;
 };
 
 export const requestsServiceDelete = async (id: string) => {
-	const deleted = await requestsDeleteData(id);
-	if (!deleted) throw new NotFoundError('Заявка', 'не найдена');
+	try {
+		const count = await requestsDeleteData(id);
+		if (!count) throw new NotFoundError('Заявка', 'не найдена');
+		return count > 0;
+	} catch (error) {
+		if (error instanceof ForeignKeyConstraintError) {
+			throw new ConflictError('Нельзя удалить заявку с историей статусов');
+		}
+		throw error;
+	}
+};
+
+export const requestsServiceGetHistory = async (id: string) => {
+	await requestsServiceGetById(id);
+	return RequestStatusHistory.findAll({
+		where: { requestId: id },
+		order: [['changedAt', 'ASC']],
+	});
 };
 
 export const hasOpenRequestsForEquipment = async (equipmentId: string) => {
 	const requests = await requestsFindByEquipmentId(equipmentId);
 	return requests.some(
-		(request) => !CLOSED_REQUEST_STATUSES.includes(request.status),
+		(request) =>
+			!CLOSED_REQUEST_STATUSES.includes(
+				request.statusCode as RequestStatusCode,
+			),
 	);
 };
 
 export const requestsServiceGetByEquipmentId = async (
 	equipmentId: string,
-	query: RequestListQuery,
+	query: GetRequestsQuery,
 ) => {
 	const equipment = await equipmentFindById(equipmentId);
 	if (!equipment) throw new NotFoundError('Оборудование', 'не найдено');

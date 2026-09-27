@@ -1,15 +1,24 @@
 import { Router } from 'express';
 import {
+	removeRequestAssignee,
+	setRequestAssignees,
+} from '../controllers/requestAssignees.ts';
+import {
 	bulkCreateRequests,
 	createRequest,
 	deleteRequest,
 	getAllRequests,
 	getRequestById,
+	getRequestHistory,
 	updateRequest,
 	updateRequestStatus,
 } from '../controllers/requests.ts';
 import { apiKeyAuth, validate } from '../middlewares/index.ts';
 import { idParamSchema } from '../validators/common.validator.ts';
+import {
+	requestAssigneeParamsSchema,
+	setRequestAssigneesSchema,
+} from '../validators/requestAssignees.validator.ts';
 import {
 	bulkCreateRequestsSchema,
 	createRequestSchema,
@@ -59,6 +68,23 @@ router.delete(
 	apiKeyAuth,
 	validate({ params: idParamSchema }),
 	deleteRequest,
+);
+router.get(
+	'/requests/:id/history',
+	validate({ params: idParamSchema }),
+	getRequestHistory,
+);
+router.post(
+	'/requests/:id/assignees',
+	apiKeyAuth,
+	validate({ params: idParamSchema, body: setRequestAssigneesSchema }),
+	setRequestAssignees,
+);
+router.delete(
+	'/requests/:id/assignees/:userId',
+	apiKeyAuth,
+	validate({ params: requestAssigneeParamsSchema }),
+	removeRequestAssignee,
 );
 
 export default router;

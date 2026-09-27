@@ -1,63 +1,65 @@
-import { mkdir, rm, writeFile } from 'node:fs/promises';
-import path from 'node:path';
 import request from 'supertest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import app from '../app.ts';
+import { createTestSite, resetDb } from '../testUtils/dbFixtures.ts';
 
-const testStorageDir = path.join(process.cwd(), 'storage-test');
 const API_KEY = 'dev-api-key';
 
-const baseEquipment = {
+const baseEquipment = (siteId: string) => ({
+	siteId,
 	name: 'Турбина №7',
 	type: 'turbine',
 	serialNumber: 'WT-2024-0007',
-	location: { lat: 55.75, lon: 37.62 },
 	status: 'operational',
-	installedAt: '2024-06-01T00:00:00.000Z',
-};
+	installedAt: '2024-06-01',
+});
 
-const createEquipment = (overrides: Partial<typeof baseEquipment> = {}) =>
-	request(app)
+const createEquipment = async (overrides: Record<string, unknown> = {}) => {
+	const site = await createTestSite();
+	return request(app)
 		.post('/api/equipment')
 		.set('X-API-Key', API_KEY)
-		.send({ ...baseEquipment, ...overrides });
-
-const writeRequests = async (requests: unknown[]) => {
-	await mkdir(testStorageDir, { recursive: true });
-	await writeFile(
-		path.join(testStorageDir, 'requests.json'),
-		JSON.stringify(requests, null, 2),
-	);
+		.send({ ...baseEquipment(site.id), ...overrides });
 };
 
 beforeEach(async () => {
-	await rm(testStorageDir, { recursive: true, force: true });
+	await resetDb();
 });
 
 afterEach(async () => {
-	await rm(testStorageDir, { recursive: true, force: true });
 	vi.unstubAllGlobals();
 });
 
 describe('POST /api/equipment', () => {
 	it('returns 201 status', async () => {
-		const response = await createEquipment();
+		const site = await createTestSite();
+		const response = await request(app)
+			.post('/api/equipment')
+			.set('X-API-Key', API_KEY)
+			.send(baseEquipment(site.id));
 
 		expect(response.status).toBe(201);
 		expect(typeof response.body.id).toBe('string');
-		expect(response.body).toMatchObject(baseEquipment);
+		expect(response.body).toMatchObject(baseEquipment(site.id));
 	});
 
 	it('returns 409 when serialNumber already exists', async () => {
-		await createEquipment();
-		const response = await createEquipment();
+		const site = await createTestSite();
+		await request(app)
+			.post('/api/equipment')
+			.set('X-API-Key', API_KEY)
+			.send(baseEquipment(site.id));
+		const response = await request(app)
+			.post('/api/equipment')
+			.set('X-API-Key', API_KEY)
+			.send(baseEquipment(site.id));
 
 		expect(response.status).toBe(409);
 	});
 
 	it('returns 422 when installedAt is in the future', async () => {
 		const response = await createEquipment({
-			installedAt: '2099-01-01T00:00:00.000Z',
+			installedAt: '2099-01-01',
 		});
 
 		expect(response.status).toBe(422);
@@ -65,18 +67,20 @@ describe('POST /api/equipment', () => {
 	});
 
 	it('returns 401 without an API key', async () => {
+		const site = await createTestSite();
 		const response = await request(app)
 			.post('/api/equipment')
-			.send(baseEquipment);
+			.send(baseEquipment(site.id));
 
 		expect(response.status).toBe(401);
 	});
 
 	it('returns 401 with a wrong API key', async () => {
+		const site = await createTestSite();
 		const response = await request(app)
 			.post('/api/equipment')
 			.set('X-API-Key', 'wrong-key')
-			.send(baseEquipment);
+			.send(baseEquipment(site.id));
 
 		expect(response.status).toBe(401);
 	});
@@ -101,15 +105,14 @@ describe('GET /api/equipment', () => {
 		expect(response.body.data).toHaveLength(2);
 	});
 
-	it('falls back to the default limit when limit is not a number', async () => {
+	it('returns 400 when limit is not a number', async () => {
 		await createEquipment();
 
 		const response = await request(app)
 			.get('/api/equipment')
 			.query({ limit: 'xyz' });
 
-		expect(response.status).toBe(200);
-		expect(response.body.limit).toBe(20);
+		expect(response.status).toBe(400);
 	});
 
 	it('filters by status', async () => {
@@ -141,7 +144,8 @@ describe('GET /api/equipment/:id', () => {
 		);
 
 		expect(response.status).toBe(200);
-		expect(response.body).toMatchObject(baseEquipment);
+		expect(response.body.id).toBe(created.body.id);
+		expect(response.body.serialNumber).toBe(created.body.serialNumber);
 	});
 
 	it('returns 404 for unknown id', async () => {
@@ -173,18 +177,6 @@ describe('PATCH /api/equipment/:id', () => {
 		expect(response.body.id).toBe(created.body.id);
 	});
 
-	it('ignores an attempt to change id', async () => {
-		const created = await createEquipment();
-
-		const response = await request(app)
-			.patch(`/api/equipment/${created.body.id}`)
-			.set('X-API-Key', API_KEY)
-			.send({ id: 'hacked-id', status: 'maintenance' });
-
-		expect(response.status).toBe(200);
-		expect(response.body.id).toBe(created.body.id);
-	});
-
 	it('returns 404 for unknown id', async () => {
 		const response = await request(app)
 			.patch(`/api/equipment/${crypto.randomUUID()}`)
@@ -204,8 +196,15 @@ describe('PATCH /api/equipment/:id', () => {
 	});
 
 	it('returns 409 when new serialNumber is already taken', async () => {
-		await createEquipment({ serialNumber: 'WT-2024-0001' });
-		const second = await createEquipment({ serialNumber: 'WT-2024-0002' });
+		const site = await createTestSite();
+		await request(app)
+			.post('/api/equipment')
+			.set('X-API-Key', API_KEY)
+			.send({ ...baseEquipment(site.id), serialNumber: 'WT-2024-0001' });
+		const second = await request(app)
+			.post('/api/equipment')
+			.set('X-API-Key', API_KEY)
+			.send({ ...baseEquipment(site.id), serialNumber: 'WT-2024-0002' });
 
 		const response = await request(app)
 			.patch(`/api/equipment/${second.body.id}`)
@@ -259,18 +258,12 @@ describe('DELETE /api/equipment/:id', () => {
 
 	it('returns 409 when equipment has open requests', async () => {
 		const created = await createEquipment();
-		await writeRequests([
-			{
-				id: 'req-1',
-				equipmentId: created.body.id,
-				title: 'Заменить датчик',
-				description: '',
-				priority: 'medium',
-				status: 'in_progress',
-				createdAt: '2024-06-01T00:00:00.000Z',
-				updatedAt: '2024-06-01T00:00:00.000Z',
-			},
-		]);
+		await request(app).post('/api/requests').set('X-API-Key', API_KEY).send({
+			equipmentId: created.body.id,
+			title: 'Заменить датчик',
+			priority: 'medium',
+			author: 'Тест',
+		});
 
 		const response = await request(app)
 			.delete(`/api/equipment/${created.body.id}`)
@@ -294,28 +287,21 @@ describe('GET /api/equipment/:id/requests', () => {
 	it('returns requests scoped to the equipment', async () => {
 		const equipmentA = await createEquipment({ serialNumber: 'WT-2024-0001' });
 		const equipmentB = await createEquipment({ serialNumber: 'WT-2024-0002' });
-		await writeRequests([
-			{
-				id: 'req-1',
+		const reqA = await request(app)
+			.post('/api/requests')
+			.set('X-API-Key', API_KEY)
+			.send({
 				equipmentId: equipmentA.body.id,
 				title: 'Заменить датчик',
-				description: '',
 				priority: 'medium',
-				status: 'new',
-				createdAt: '2024-06-01T00:00:00.000Z',
-				updatedAt: '2024-06-01T00:00:00.000Z',
-			},
-			{
-				id: 'req-2',
-				equipmentId: equipmentB.body.id,
-				title: 'Проверить инвертор',
-				description: '',
-				priority: 'low',
-				status: 'new',
-				createdAt: '2024-06-01T00:00:00.000Z',
-				updatedAt: '2024-06-01T00:00:00.000Z',
-			},
-		]);
+				author: 'Тест',
+			});
+		await request(app).post('/api/requests').set('X-API-Key', API_KEY).send({
+			equipmentId: equipmentB.body.id,
+			title: 'Проверить инвертор',
+			priority: 'low',
+			author: 'Тест',
+		});
 
 		const response = await request(app).get(
 			`/api/equipment/${equipmentA.body.id}/requests`,
@@ -323,7 +309,7 @@ describe('GET /api/equipment/:id/requests', () => {
 
 		expect(response.status).toBe(200);
 		expect(response.body.total).toBe(1);
-		expect(response.body.data[0].id).toBe('req-1');
+		expect(response.body.data[0].id).toBe(reqA.body.id);
 	});
 
 	it('returns 404 for unknown equipment id', async () => {

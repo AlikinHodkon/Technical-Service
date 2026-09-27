@@ -6,7 +6,11 @@ import {
 	Table,
 } from 'sequelize-typescript';
 
-@Table({ tableName: 'assignee_role_lookup', timestamps: false })
+@Table({
+	tableName: 'assignee_role_lookup',
+	timestamps: false,
+	underscored: true,
+})
 export class AssigneeRoleLookup extends Model {
 	@PrimaryKey
 	@Column(DataType.TEXT)

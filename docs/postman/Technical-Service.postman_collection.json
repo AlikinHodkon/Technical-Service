@@ -4,15 +4,50 @@
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"variable": [
-		{ "key": "baseUrl", "value": "http://localhost:3000/api" },
-		{ "key": "apiKey", "value": "dev-api-key" },
-		{ "key": "equipmentId", "value": "" },
-		{ "key": "equipmentId2", "value": "" },
-		{ "key": "requestId", "value": "" },
-		{ "key": "bulkCreatedRequestId", "value": "" },
-		{ "key": "deletionEquipmentId", "value": "" },
-		{ "key": "deletionRequestId", "value": "" },
-		{ "key": "rateLimitAttempts", "value": "0" }
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:3000/api"
+		},
+		{
+			"key": "apiKey",
+			"value": "dev-api-key"
+		},
+		{
+			"key": "equipmentId",
+			"value": ""
+		},
+		{
+			"key": "equipmentId2",
+			"value": ""
+		},
+		{
+			"key": "requestId",
+			"value": ""
+		},
+		{
+			"key": "bulkCreatedRequestId",
+			"value": ""
+		},
+		{
+			"key": "deletionEquipmentId",
+			"value": ""
+		},
+		{
+			"key": "deletionRequestId",
+			"value": ""
+		},
+		{
+			"key": "rateLimitAttempts",
+			"value": "0"
+		},
+		{
+			"key": "technicianId",
+			"value": ""
+		},
+		{
+			"key": "requestIdNoTeam",
+			"value": ""
+		}
 	],
 	"item": [
 		{
@@ -54,8 +89,14 @@
 					"request": {
 						"method": "POST",
 						"header": [
-							{ "key": "Content-Type", "value": "application/json" },
-							{ "key": "X-API-Key", "value": "{{apiKey}}" }
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-API-Key",
+								"value": "{{apiKey}}"
+							}
 						],
 						"body": {
 							"mode": "raw",
@@ -90,8 +131,14 @@
 					"request": {
 						"method": "POST",
 						"header": [
-							{ "key": "Content-Type", "value": "application/json" },
-							{ "key": "X-API-Key", "value": "{{apiKey}}" }
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-API-Key",
+								"value": "{{apiKey}}"
+							}
 						],
 						"body": {
 							"mode": "raw",
@@ -124,8 +171,14 @@
 					"request": {
 						"method": "POST",
 						"header": [
-							{ "key": "Content-Type", "value": "application/json" },
-							{ "key": "X-API-Key", "value": "{{apiKey}}" }
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-API-Key",
+								"value": "{{apiKey}}"
+							}
 						],
 						"body": {
 							"mode": "raw",
@@ -157,7 +210,12 @@
 					"name": "POST /equipment — missing API key (401)",
 					"request": {
 						"method": "POST",
-						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
 						"body": {
 							"mode": "raw",
 							"raw": "{\n  \"name\": \"Турбина без ключа\",\n  \"type\": \"turbine\",\n  \"serialNumber\": \"WT-POSTMAN-0003\",\n  \"location\": { \"lat\": 55.75, \"lon\": 37.62 },\n  \"status\": \"operational\",\n  \"installedAt\": \"2024-01-01T00:00:00.000Z\"\n}"
@@ -189,8 +247,14 @@
 							"host": ["{{baseUrl}}"],
 							"path": ["equipment"],
 							"query": [
-								{ "key": "page", "value": "1" },
-								{ "key": "limit", "value": "20" }
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "20"
+								}
 							]
 						}
 					},
@@ -219,7 +283,12 @@
 							"raw": "{{baseUrl}}/equipment?status=operational",
 							"host": ["{{baseUrl}}"],
 							"path": ["equipment"],
-							"query": [{ "key": "status", "value": "operational" }]
+							"query": [
+								{
+									"key": "status",
+									"value": "operational"
+								}
+							]
 						}
 					},
 					"event": [
@@ -321,8 +390,14 @@
 					"request": {
 						"method": "PATCH",
 						"header": [
-							{ "key": "Content-Type", "value": "application/json" },
-							{ "key": "X-API-Key", "value": "{{apiKey}}" }
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-API-Key",
+								"value": "{{apiKey}}"
+							}
 						],
 						"body": {
 							"mode": "raw",
@@ -355,10 +430,19 @@
 					"request": {
 						"method": "PATCH",
 						"header": [
-							{ "key": "Content-Type", "value": "application/json" },
-							{ "key": "X-API-Key", "value": "{{apiKey}}" }
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-API-Key",
+								"value": "{{apiKey}}"
+							}
 						],
-						"body": { "mode": "raw", "raw": "{\n  \"status\": \"fault\"\n}" },
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"fault\"\n}"
+						},
 						"url": {
 							"raw": "{{baseUrl}}/equipment/00000000-0000-0000-0000-000000000000",
 							"host": ["{{baseUrl}}"],
@@ -381,10 +465,19 @@
 					"request": {
 						"method": "PATCH",
 						"header": [
-							{ "key": "Content-Type", "value": "application/json" },
-							{ "key": "X-API-Key", "value": "{{apiKey}}" }
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-API-Key",
+								"value": "{{apiKey}}"
+							}
 						],
-						"body": { "mode": "raw", "raw": "{\n  \"status\": \"fault\"\n}" },
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"fault\"\n}"
+						},
 						"url": {
 							"raw": "{{baseUrl}}/equipment/unknown-id",
 							"host": ["{{baseUrl}}"],
@@ -441,8 +534,14 @@
 							"request": {
 								"method": "POST",
 								"header": [
-									{ "key": "Content-Type", "value": "application/json" },
-									{ "key": "X-API-Key", "value": "{{apiKey}}" }
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "X-API-Key",
+										"value": "{{apiKey}}"
+									}
 								],
 								"body": {
 									"mode": "raw",
@@ -471,8 +570,14 @@
 							"request": {
 								"method": "POST",
 								"header": [
-									{ "key": "Content-Type", "value": "application/json" },
-									{ "key": "X-API-Key", "value": "{{apiKey}}" }
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "X-API-Key",
+										"value": "{{apiKey}}"
+									}
 								],
 								"body": {
 									"mode": "raw",
@@ -500,7 +605,12 @@
 							"name": "3. DELETE equipment while request is open (409)",
 							"request": {
 								"method": "DELETE",
-								"header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+								"header": [
+									{
+										"key": "X-API-Key",
+										"value": "{{apiKey}}"
+									}
+								],
 								"url": {
 									"raw": "{{baseUrl}}/equipment/{{deletionEquipmentId}}",
 									"host": ["{{baseUrl}}"],
@@ -523,8 +633,14 @@
 							"request": {
 								"method": "PATCH",
 								"header": [
-									{ "key": "Content-Type", "value": "application/json" },
-									{ "key": "X-API-Key", "value": "{{apiKey}}" }
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									},
+									{
+										"key": "X-API-Key",
+										"value": "{{apiKey}}"
+									}
 								],
 								"body": {
 									"mode": "raw",
@@ -551,7 +667,12 @@
 							"name": "5. DELETE equipment now succeeds (204)",
 							"request": {
 								"method": "DELETE",
-								"header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+								"header": [
+									{
+										"key": "X-API-Key",
+										"value": "{{apiKey}}"
+									}
+								],
 								"url": {
 									"raw": "{{baseUrl}}/equipment/{{deletionEquipmentId}}",
 									"host": ["{{baseUrl}}"],
@@ -581,8 +702,14 @@
 					"request": {
 						"method": "POST",
 						"header": [
-							{ "key": "Content-Type", "value": "application/json" },
-							{ "key": "X-API-Key", "value": "{{apiKey}}" }
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-API-Key",
+								"value": "{{apiKey}}"
+							}
 						],
 						"body": {
 							"mode": "raw",
@@ -615,8 +742,14 @@
 					"request": {
 						"method": "POST",
 						"header": [
-							{ "key": "Content-Type", "value": "application/json" },
-							{ "key": "X-API-Key", "value": "{{apiKey}}" }
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-API-Key",
+								"value": "{{apiKey}}"
+							}
 						],
 						"body": {
 							"mode": "raw",
@@ -644,8 +777,14 @@
 					"request": {
 						"method": "POST",
 						"header": [
-							{ "key": "Content-Type", "value": "application/json" },
-							{ "key": "X-API-Key", "value": "{{apiKey}}" }
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-API-Key",
+								"value": "{{apiKey}}"
+							}
 						],
 						"body": {
 							"mode": "raw",
@@ -681,8 +820,14 @@
 					"request": {
 						"method": "PATCH",
 						"header": [
-							{ "key": "Content-Type", "value": "application/json" },
-							{ "key": "X-API-Key", "value": "{{apiKey}}" }
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-API-Key",
+								"value": "{{apiKey}}"
+							}
 						],
 						"body": {
 							"mode": "raw",
@@ -710,8 +855,14 @@
 					"request": {
 						"method": "POST",
 						"header": [
-							{ "key": "Content-Type", "value": "application/json" },
-							{ "key": "X-API-Key", "value": "{{apiKey}}" }
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-API-Key",
+								"value": "{{apiKey}}"
+							}
 						],
 						"body": {
 							"mode": "raw",
@@ -738,7 +889,12 @@
 					"name": "POST /requests/bulk — missing API key (401)",
 					"request": {
 						"method": "POST",
-						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
 						"body": {
 							"mode": "raw",
 							"raw": "{\n  \"requests\": [\n    { \"equipmentId\": \"{{equipmentId}}\", \"title\": \"Проверить крепление лопасти\", \"priority\": \"high\" }\n  ]\n}"
@@ -765,8 +921,14 @@
 					"request": {
 						"method": "POST",
 						"header": [
-							{ "key": "Content-Type", "value": "application/json" },
-							{ "key": "X-API-Key", "value": "{{apiKey}}" }
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-API-Key",
+								"value": "{{apiKey}}"
+							}
 						],
 						"body": {
 							"mode": "raw",
@@ -802,8 +964,14 @@
 							"host": ["{{baseUrl}}"],
 							"path": ["requests"],
 							"query": [
-								{ "key": "page", "value": "1" },
-								{ "key": "limit", "value": "20" }
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "limit",
+									"value": "20"
+								}
 							]
 						}
 					},
@@ -832,8 +1000,14 @@
 							"host": ["{{baseUrl}}"],
 							"path": ["requests"],
 							"query": [
-								{ "key": "priority", "value": "medium" },
-								{ "key": "equipmentId", "value": "{{equipmentId}}" }
+								{
+									"key": "priority",
+									"value": "medium"
+								},
+								{
+									"key": "equipmentId",
+									"value": "{{equipmentId}}"
+								}
 							]
 						}
 					},
@@ -922,8 +1096,14 @@
 					"request": {
 						"method": "PATCH",
 						"header": [
-							{ "key": "Content-Type", "value": "application/json" },
-							{ "key": "X-API-Key", "value": "{{apiKey}}" }
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-API-Key",
+								"value": "{{apiKey}}"
+							}
 						],
 						"body": {
 							"mode": "raw",
@@ -956,8 +1136,14 @@
 					"request": {
 						"method": "PATCH",
 						"header": [
-							{ "key": "Content-Type", "value": "application/json" },
-							{ "key": "X-API-Key", "value": "{{apiKey}}" }
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-API-Key",
+								"value": "{{apiKey}}"
+							}
 						],
 						"body": {
 							"mode": "raw",
@@ -986,10 +1172,19 @@
 					"request": {
 						"method": "PATCH",
 						"header": [
-							{ "key": "Content-Type", "value": "application/json" },
-							{ "key": "X-API-Key", "value": "{{apiKey}}" }
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-API-Key",
+								"value": "{{apiKey}}"
+							}
 						],
-						"body": { "mode": "raw", "raw": "{\n  \"status\": \"new\"\n}" },
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"new\"\n}"
+						},
 						"url": {
 							"raw": "{{baseUrl}}/requests/{{requestId}}/status",
 							"host": ["{{baseUrl}}"],
@@ -1038,10 +1233,19 @@
 					"request": {
 						"method": "PATCH",
 						"header": [
-							{ "key": "Content-Type", "value": "application/json" },
-							{ "key": "X-API-Key", "value": "{{apiKey}}" }
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-API-Key",
+								"value": "{{apiKey}}"
+							}
 						],
-						"body": { "mode": "raw", "raw": "{\n  \"status\": \"done\"\n}" },
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"done\"\n}"
+						},
 						"url": {
 							"raw": "{{baseUrl}}/requests/{{requestId}}/status",
 							"host": ["{{baseUrl}}"],
@@ -1063,7 +1267,12 @@
 					"name": "DELETE /requests/:id — success (204)",
 					"request": {
 						"method": "DELETE",
-						"header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+						"header": [
+							{
+								"key": "X-API-Key",
+								"value": "{{apiKey}}"
+							}
+						],
 						"url": {
 							"raw": "{{baseUrl}}/requests/{{requestId}}",
 							"host": ["{{baseUrl}}"],
@@ -1085,7 +1294,12 @@
 					"name": "DELETE /requests/:id — unknown id (404)",
 					"request": {
 						"method": "DELETE",
-						"header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+						"header": [
+							{
+								"key": "X-API-Key",
+								"value": "{{apiKey}}"
+							}
+						],
 						"url": {
 							"raw": "{{baseUrl}}/requests/00000000-0000-0000-0000-000000000000",
 							"host": ["{{baseUrl}}"],
@@ -1107,7 +1321,12 @@
 					"name": "DELETE /requests/:id — malformed id (422)",
 					"request": {
 						"method": "DELETE",
-						"header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+						"header": [
+							{
+								"key": "X-API-Key",
+								"value": "{{apiKey}}"
+							}
+						],
 						"url": {
 							"raw": "{{baseUrl}}/requests/unknown-id",
 							"host": ["{{baseUrl}}"],
@@ -1151,7 +1370,12 @@
 					"name": "DELETE /equipment/:id — final cleanup (204)",
 					"request": {
 						"method": "DELETE",
-						"header": [{ "key": "X-API-Key", "value": "{{apiKey}}" }],
+						"header": [
+							{
+								"key": "X-API-Key",
+								"value": "{{apiKey}}"
+							}
+						],
 						"url": {
 							"raw": "{{baseUrl}}/equipment/{{equipmentId}}",
 							"host": ["{{baseUrl}}"],
@@ -1164,6 +1388,233 @@
 							"script": {
 								"exec": [
 									"pm.test('status 204', () => pm.response.to.have.status(204));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /requests/:id/history — status history",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/requests/{{requestId}}/history",
+							"host": ["{{baseUrl}}"],
+							"path": ["requests", "{{requestId}}", "history"]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 200', () => pm.response.to.have.status(200));",
+									"pm.test('history is an array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /requests/:id/assignees — assign team (200)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-API-Key",
+								"value": "{{apiKey}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/requests/{{requestId}}/assignees",
+							"host": ["{{baseUrl}}"],
+							"path": ["requests", "{{requestId}}", "assignees"]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "[\n  {\n    \"technicianId\": \"{{technicianId}}\",\n    \"role\": \"lead\",\n    \"hours\": 6\n  }\n]"
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 200', () => pm.response.to.have.status(200));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /requests/:id/assignees — no lead in team (422)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-API-Key",
+								"value": "{{apiKey}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/requests/{{requestId}}/assignees",
+							"host": ["{{baseUrl}}"],
+							"path": ["requests", "{{requestId}}", "assignees"]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "[\n  {\n    \"technicianId\": \"{{technicianId}}\",\n    \"role\": \"member\",\n    \"hours\": 4\n  }\n]"
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 422', () => pm.response.to.have.status(422));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "POST /requests/:id/assignees — unknown technician (404)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-API-Key",
+								"value": "{{apiKey}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/requests/{{requestId}}/assignees",
+							"host": ["{{baseUrl}}"],
+							"path": ["requests", "{{requestId}}", "assignees"]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "[\n  {\n    \"technicianId\": \"00000000-0000-0000-0000-000000000000\",\n    \"role\": \"lead\",\n    \"hours\": 6\n  }\n]"
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 404', () => pm.response.to.have.status(404));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "PATCH /requests/:id/status — in_progress without team (409)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "X-API-Key",
+								"value": "{{apiKey}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/requests/{{requestIdNoTeam}}/status",
+							"host": ["{{baseUrl}}"],
+							"path": ["requests", "{{requestIdNoTeam}}", "status"]
+						},
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"status\": \"in_progress\",\n  \"author\": \"Тест\"\n}"
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 409', () => pm.response.to.have.status(409));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "DELETE /requests/:id/assignees/:userId — success (204)",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "X-API-Key",
+								"value": "{{apiKey}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/requests/{{requestId}}/assignees/{{technicianId}}",
+							"host": ["{{baseUrl}}"],
+							"path": [
+								"requests",
+								"{{requestId}}",
+								"assignees",
+								"{{technicianId}}"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 204', () => pm.response.to.have.status(204));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "DELETE /requests/:id/assignees/:userId — unknown assignment (404)",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "X-API-Key",
+								"value": "{{apiKey}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/requests/{{requestId}}/assignees/00000000-0000-0000-0000-000000000000",
+							"host": ["{{baseUrl}}"],
+							"path": [
+								"requests",
+								"{{requestId}}",
+								"assignees",
+								"00000000-0000-0000-0000-000000000000"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 404', () => pm.response.to.have.status(404));"
 								]
 							}
 						}

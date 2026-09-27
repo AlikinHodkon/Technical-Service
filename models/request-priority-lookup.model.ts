@@ -6,7 +6,11 @@ import {
 	Table,
 } from 'sequelize-typescript';
 
-@Table({ tableName: 'request_priority_lookup', timestamps: false })
+@Table({
+	tableName: 'request_priority_lookup',
+	timestamps: false,
+	underscored: true,
+})
 export class RequestPriorityLookup extends Model {
 	@PrimaryKey
 	@Column(DataType.TEXT)
