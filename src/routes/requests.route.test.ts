@@ -1,48 +1,58 @@
-import { rm } from 'node:fs/promises';
-import path from 'node:path';
 import request from 'supertest';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 import app from '../app.ts';
+import {
+	createTestSite,
+	createTestTechnician,
+	resetDb,
+} from '../testUtils/dbFixtures.ts';
 
-const testStorageDir = path.join(process.cwd(), 'storage-test');
 const API_KEY = 'dev-api-key';
 
-const baseEquipment = {
+const baseEquipment = (siteId: string) => ({
+	siteId,
 	name: 'Турбина №7',
 	type: 'turbine',
 	serialNumber: 'WT-2024-0007',
-	location: { lat: 55.75, lon: 37.62 },
 	status: 'operational',
-	installedAt: '2024-06-01T00:00:00.000Z',
-};
+	installedAt: '2024-06-01',
+});
 
 const baseRequest = {
 	title: 'Заменить датчик вибрации',
 	description: 'Датчик показывает нестабильные значения',
 	priority: 'medium',
+	author: 'Оператор',
 };
 
-const createEquipment = (overrides: Partial<typeof baseEquipment> = {}) =>
-	request(app)
+const createEquipment = async (overrides: Record<string, unknown> = {}) => {
+	const site = await createTestSite();
+	return request(app)
 		.post('/api/equipment')
 		.set('X-API-Key', API_KEY)
-		.send({ ...baseEquipment, ...overrides });
+		.send({ ...baseEquipment(site.id), ...overrides });
+};
 
 const createRequestFor = (
 	equipmentId: string,
-	overrides: Partial<typeof baseRequest> = {},
+	overrides: Record<string, unknown> = {},
 ) =>
 	request(app)
 		.post('/api/requests')
 		.set('X-API-Key', API_KEY)
 		.send({ ...baseRequest, equipmentId, ...overrides });
 
-beforeEach(async () => {
-	await rm(testStorageDir, { recursive: true, force: true });
-});
+const assignLead = async (requestId: string) => {
+	const technician = await createTestTechnician();
+	await request(app)
+		.post(`/api/requests/${requestId}/assignees`)
+		.set('X-API-Key', API_KEY)
+		.send([{ technicianId: technician.id, role: 'lead' }]);
+	return technician;
+};
 
-afterEach(async () => {
-	await rm(testStorageDir, { recursive: true, force: true });
+beforeEach(async () => {
+	await resetDb();
 });
 
 describe('POST /api/requests', () => {
@@ -58,7 +68,7 @@ describe('POST /api/requests', () => {
 	});
 
 	it('returns 404 when equipmentId does not exist', async () => {
-		const response = await createRequestFor('unknown-equipment-id');
+		const response = await createRequestFor(crypto.randomUUID());
 
 		expect(response.status).toBe(404);
 	});
@@ -183,14 +193,17 @@ describe('GET /api/requests', () => {
 });
 
 describe('GET /api/requests/:id', () => {
-	it('returns the request card', async () => {
+	it('returns the request card with assigned technicians', async () => {
 		const equipment = await createEquipment();
 		const created = await createRequestFor(equipment.body.id);
+		const technician = await assignLead(created.body.id);
 
 		const response = await request(app).get(`/api/requests/${created.body.id}`);
 
 		expect(response.status).toBe(200);
 		expect(response.body.id).toBe(created.body.id);
+		expect(response.body.technicians).toHaveLength(1);
+		expect(response.body.technicians[0].id).toBe(technician.id);
 	});
 
 	it('returns 404 for unknown id', async () => {
@@ -267,17 +280,30 @@ describe('PATCH /api/requests/:id', () => {
 });
 
 describe('PATCH /api/requests/:id/status', () => {
-	it('allows a valid transition', async () => {
+	it('allows a valid transition when assignees are present', async () => {
+		const equipment = await createEquipment();
+		const created = await createRequestFor(equipment.body.id);
+		await assignLead(created.body.id);
+
+		const response = await request(app)
+			.patch(`/api/requests/${created.body.id}/status`)
+			.set('X-API-Key', API_KEY)
+			.send({ status: 'in_progress', author: 'Тест' });
+
+		expect(response.status).toBe(200);
+		expect(response.body.status).toBe('in_progress');
+	});
+
+	it('returns 409 when moving to in_progress without assignees', async () => {
 		const equipment = await createEquipment();
 		const created = await createRequestFor(equipment.body.id);
 
 		const response = await request(app)
 			.patch(`/api/requests/${created.body.id}/status`)
 			.set('X-API-Key', API_KEY)
-			.send({ status: 'in_progress' });
+			.send({ status: 'in_progress', author: 'Тест' });
 
-		expect(response.status).toBe(200);
-		expect(response.body.status).toBe('in_progress');
+		expect(response.status).toBe(409);
 	});
 
 	it('returns 409 on an invalid transition', async () => {
@@ -287,7 +313,7 @@ describe('PATCH /api/requests/:id/status', () => {
 		const response = await request(app)
 			.patch(`/api/requests/${created.body.id}/status`)
 			.set('X-API-Key', API_KEY)
-			.send({ status: 'done' });
+			.send({ status: 'done', author: 'Тест' });
 
 		expect(response.status).toBe(409);
 	});
@@ -298,21 +324,43 @@ describe('PATCH /api/requests/:id/status', () => {
 		await request(app)
 			.patch(`/api/requests/${created.body.id}/status`)
 			.set('X-API-Key', API_KEY)
-			.send({ status: 'rejected' });
+			.send({ status: 'rejected', author: 'Тест' });
 
 		const response = await request(app)
 			.patch(`/api/requests/${created.body.id}/status`)
 			.set('X-API-Key', API_KEY)
-			.send({ status: 'in_progress' });
+			.send({ status: 'in_progress', author: 'Тест' });
 
 		expect(response.status).toBe(409);
+	});
+
+	it('records a status-history entry on a successful transition', async () => {
+		const equipment = await createEquipment();
+		const created = await createRequestFor(equipment.body.id);
+		await assignLead(created.body.id);
+		await request(app)
+			.patch(`/api/requests/${created.body.id}/status`)
+			.set('X-API-Key', API_KEY)
+			.send({ status: 'in_progress', author: 'Тест' });
+
+		const history = await request(app).get(
+			`/api/requests/${created.body.id}/history`,
+		);
+
+		expect(history.status).toBe(200);
+		expect(history.body).toHaveLength(1);
+		expect(history.body[0]).toMatchObject({
+			oldStatusCode: 'new',
+			newStatusCode: 'in_progress',
+			author: 'Тест',
+		});
 	});
 
 	it('returns 404 for unknown id', async () => {
 		const response = await request(app)
 			.patch(`/api/requests/${crypto.randomUUID()}/status`)
 			.set('X-API-Key', API_KEY)
-			.send({ status: 'in_progress' });
+			.send({ status: 'in_progress', author: 'Тест' });
 
 		expect(response.status).toBe(404);
 	});
@@ -321,7 +369,7 @@ describe('PATCH /api/requests/:id/status', () => {
 		const response = await request(app)
 			.patch('/api/requests/unknown-id/status')
 			.set('X-API-Key', API_KEY)
-			.send({ status: 'in_progress' });
+			.send({ status: 'in_progress', author: 'Тест' });
 
 		expect(response.status).toBe(422);
 	});
@@ -332,7 +380,7 @@ describe('PATCH /api/requests/:id/status', () => {
 
 		const response = await request(app)
 			.patch(`/api/requests/${created.body.id}/status`)
-			.send({ status: 'in_progress' });
+			.send({ status: 'in_progress', author: 'Тест' });
 
 		expect(response.status).toBe(401);
 	});
@@ -379,5 +427,172 @@ describe('DELETE /api/requests/:id', () => {
 		);
 
 		expect(response.status).toBe(401);
+	});
+});
+
+describe('POST /api/requests/:id/assignees', () => {
+	it('returns 200 and replaces the assignee list', async () => {
+		const equipment = await createEquipment();
+		const created = await createRequestFor(equipment.body.id);
+		const lead = await createTestTechnician();
+		const member = await createTestTechnician();
+
+		const response = await request(app)
+			.post(`/api/requests/${created.body.id}/assignees`)
+			.set('X-API-Key', API_KEY)
+			.send([
+				{ technicianId: lead.id, role: 'lead', hours: 4 },
+				{ technicianId: member.id, role: 'member' },
+			]);
+
+		expect(response.status).toBe(200);
+		expect(response.body).toHaveLength(2);
+	});
+
+	it('returns 422 when there is no lead', async () => {
+		const equipment = await createEquipment();
+		const created = await createRequestFor(equipment.body.id);
+		const member = await createTestTechnician();
+
+		const response = await request(app)
+			.post(`/api/requests/${created.body.id}/assignees`)
+			.set('X-API-Key', API_KEY)
+			.send([{ technicianId: member.id, role: 'member' }]);
+
+		expect(response.status).toBe(422);
+	});
+
+	it('returns 422 when there are two leads', async () => {
+		const equipment = await createEquipment();
+		const created = await createRequestFor(equipment.body.id);
+		const leadA = await createTestTechnician();
+		const leadB = await createTestTechnician();
+
+		const response = await request(app)
+			.post(`/api/requests/${created.body.id}/assignees`)
+			.set('X-API-Key', API_KEY)
+			.send([
+				{ technicianId: leadA.id, role: 'lead' },
+				{ technicianId: leadB.id, role: 'lead' },
+			]);
+
+		expect(response.status).toBe(422);
+	});
+
+	it('returns 422 when the same technicianId repeats in the body', async () => {
+		const equipment = await createEquipment();
+		const created = await createRequestFor(equipment.body.id);
+		const technician = await createTestTechnician();
+
+		const response = await request(app)
+			.post(`/api/requests/${created.body.id}/assignees`)
+			.set('X-API-Key', API_KEY)
+			.send([
+				{ technicianId: technician.id, role: 'lead' },
+				{ technicianId: technician.id, role: 'member' },
+			]);
+
+		expect(response.status).toBe(422);
+	});
+
+	it('returns 404 for an unknown request id', async () => {
+		const technician = await createTestTechnician();
+
+		const response = await request(app)
+			.post(`/api/requests/${crypto.randomUUID()}/assignees`)
+			.set('X-API-Key', API_KEY)
+			.send([{ technicianId: technician.id, role: 'lead' }]);
+
+		expect(response.status).toBe(404);
+	});
+
+	it('returns 404 for an unknown technician id', async () => {
+		const equipment = await createEquipment();
+		const created = await createRequestFor(equipment.body.id);
+
+		const response = await request(app)
+			.post(`/api/requests/${created.body.id}/assignees`)
+			.set('X-API-Key', API_KEY)
+			.send([{ technicianId: crypto.randomUUID(), role: 'lead' }]);
+
+		expect(response.status).toBe(404);
+	});
+
+	it('rolls back entirely when the request is invalid (no leftover assignees)', async () => {
+		const equipment = await createEquipment();
+		const created = await createRequestFor(equipment.body.id);
+		await assignLead(created.body.id);
+
+		const member = await createTestTechnician();
+		const badResponse = await request(app)
+			.post(`/api/requests/${created.body.id}/assignees`)
+			.set('X-API-Key', API_KEY)
+			.send([{ technicianId: member.id, role: 'member' }]);
+		expect(badResponse.status).toBe(422);
+
+		const requestCard = await request(app).get(
+			`/api/requests/${created.body.id}`,
+		);
+		expect(requestCard.body.technicians).toHaveLength(1);
+	});
+
+	it('returns 401 without an API key', async () => {
+		const equipment = await createEquipment();
+		const created = await createRequestFor(equipment.body.id);
+		const technician = await createTestTechnician();
+
+		const response = await request(app)
+			.post(`/api/requests/${created.body.id}/assignees`)
+			.send([{ technicianId: technician.id, role: 'lead' }]);
+
+		expect(response.status).toBe(401);
+	});
+});
+
+describe('DELETE /api/requests/:id/assignees/:userId', () => {
+	it('returns 204 and removes the assignment', async () => {
+		const equipment = await createEquipment();
+		const created = await createRequestFor(equipment.body.id);
+		const technician = await assignLead(created.body.id);
+
+		const response = await request(app)
+			.delete(`/api/requests/${created.body.id}/assignees/${technician.id}`)
+			.set('X-API-Key', API_KEY);
+
+		expect(response.status).toBe(204);
+	});
+
+	it('returns 404 when the assignment does not exist', async () => {
+		const equipment = await createEquipment();
+		const created = await createRequestFor(equipment.body.id);
+		const technician = await createTestTechnician();
+
+		const response = await request(app)
+			.delete(`/api/requests/${created.body.id}/assignees/${technician.id}`)
+			.set('X-API-Key', API_KEY);
+
+		expect(response.status).toBe(404);
+	});
+
+	it('returns 401 without an API key', async () => {
+		const equipment = await createEquipment();
+		const created = await createRequestFor(equipment.body.id);
+		const technician = await assignLead(created.body.id);
+
+		const response = await request(app).delete(
+			`/api/requests/${created.body.id}/assignees/${technician.id}`,
+		);
+
+		expect(response.status).toBe(401);
+	});
+});
+
+describe('GET /api/requests/:id/history', () => {
+	it('returns 404 for unknown id', async () => {
+		const response = await request(app).get(
+			`/api/requests/${crypto.randomUUID()}/history`,
+		);
+
+		expect(response.status).toBe(404);
 	});
 });

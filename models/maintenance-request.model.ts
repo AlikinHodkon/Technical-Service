@@ -18,7 +18,11 @@ import { RequestStatusHistory } from './request-status-history.model.ts';
 import { RequestStatusLookup } from './request-status-lookup.model.ts';
 import { Technician } from './technician.model.ts';
 
-@Table({ tableName: 'maintenance_requests', timestamps: false })
+@Table({
+	tableName: 'maintenance_requests',
+	timestamps: false,
+	underscored: true,
+})
 export class MaintenanceRequest extends Model {
 	@PrimaryKey
 	@Default(DataType.UUIDV4)
@@ -28,7 +32,7 @@ export class MaintenanceRequest extends Model {
 	@ForeignKey(() => Equipment)
 	@AllowNull(false)
 	@Column(DataType.UUID)
-	declare equipment_id: string;
+	declare equipmentId: string;
 
 	@BelongsTo(() => Equipment)
 	declare equipment: Equipment;
@@ -43,7 +47,7 @@ export class MaintenanceRequest extends Model {
 	@ForeignKey(() => RequestPriorityLookup)
 	@AllowNull(false)
 	@Column(DataType.TEXT)
-	declare priority_code: string;
+	declare priorityCode: string;
 
 	@BelongsTo(() => RequestPriorityLookup)
 	declare priority: RequestPriorityLookup;
@@ -52,13 +56,13 @@ export class MaintenanceRequest extends Model {
 	@AllowNull(false)
 	@Default('new')
 	@Column(DataType.TEXT)
-	declare status_code: string;
+	declare statusCode: string;
 
 	@BelongsTo(() => RequestStatusLookup)
 	declare status: RequestStatusLookup;
 
 	@Column(DataType.DATE)
-	declare planned_at: Date | null;
+	declare plannedAt: Date | null;
 
 	@AllowNull(false)
 	@Column(DataType.TEXT)
@@ -66,11 +70,11 @@ export class MaintenanceRequest extends Model {
 
 	@AllowNull(false)
 	@Column(DataType.DATE)
-	declare created_at: Date;
+	declare createdAt: Date;
 
 	@AllowNull(false)
 	@Column(DataType.DATE)
-	declare updated_at: Date;
+	declare updatedAt: Date;
 
 	@HasMany(() => RequestStatusHistory)
 	declare statusHistory: RequestStatusHistory[];

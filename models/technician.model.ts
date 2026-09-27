@@ -3,6 +3,7 @@ import {
 	BelongsToMany,
 	Column,
 	DataType,
+	Default,
 	Model,
 	PrimaryKey,
 	Table,
@@ -11,15 +12,16 @@ import {
 import { MaintenanceRequest } from './maintenance-request.model.ts';
 import { RequestAssignee } from './request-assignee.model.ts';
 
-@Table({ tableName: 'technicians', timestamps: false })
+@Table({ tableName: 'technicians', timestamps: false, underscored: true })
 export class Technician extends Model {
 	@PrimaryKey
+	@Default(DataType.UUIDV4)
 	@Column(DataType.UUID)
 	declare id: string;
 
 	@AllowNull(false)
 	@Column(DataType.TEXT)
-	declare full_name: string;
+	declare fullName: string;
 
 	@Column(DataType.TEXT)
 	declare specialization: string | null;
@@ -27,7 +29,7 @@ export class Technician extends Model {
 	@AllowNull(false)
 	@Unique
 	@Column(DataType.TEXT)
-	declare employee_number: string;
+	declare employeeNumber: string;
 
 	@BelongsToMany(
 		() => MaintenanceRequest,

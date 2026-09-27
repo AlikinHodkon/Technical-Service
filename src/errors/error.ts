@@ -79,3 +79,19 @@ export class ServiceUnavailableError extends AppError {
 		super(message, { status: 503, code: 'service_unavailable', cause });
 	}
 }
+
+export class BadRequestError extends AppError {
+	constructor(zodError: {
+		issues: { path: string[]; code: string; message: string }[];
+	}) {
+		super('Некорректные параметры запроса', {
+			status: 400,
+			code: 'bad_request',
+			details: zodError.issues.map((i) => ({
+				field: i.path.join('.') || '(корень)',
+				code: i.code,
+				message: i.message,
+			})),
+		});
+	}
+}

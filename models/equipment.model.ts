@@ -18,7 +18,7 @@ import { EquipmentTypeLookup } from './equipment-type-lookup.model.ts';
 import { MaintenanceRequest } from './maintenance-request.model.ts';
 import { Site } from './site.model.ts';
 
-@Table({ tableName: 'equipment', timestamps: false })
+@Table({ tableName: 'equipment', timestamps: false, underscored: true })
 export class Equipment extends Model {
 	@PrimaryKey
 	@Default(DataType.UUIDV4)
@@ -28,7 +28,7 @@ export class Equipment extends Model {
 	@ForeignKey(() => Site)
 	@AllowNull(false)
 	@Column(DataType.UUID)
-	declare site_id: string;
+	declare siteId: string;
 
 	@BelongsTo(() => Site)
 	declare site: Site;
@@ -40,7 +40,7 @@ export class Equipment extends Model {
 	@ForeignKey(() => EquipmentTypeLookup)
 	@AllowNull(false)
 	@Column(DataType.TEXT)
-	declare type_code: string;
+	declare typeCode: string;
 
 	@BelongsTo(() => EquipmentTypeLookup)
 	declare type: EquipmentTypeLookup;
@@ -48,18 +48,18 @@ export class Equipment extends Model {
 	@AllowNull(false)
 	@Unique
 	@Column(DataType.TEXT)
-	declare serial_number: string;
+	declare serialNumber: string;
 
 	@ForeignKey(() => EquipmentStatusLookup)
 	@AllowNull(false)
 	@Column(DataType.TEXT)
-	declare status_code: string;
+	declare statusCode: string;
 
 	@BelongsTo(() => EquipmentStatusLookup)
 	declare status: EquipmentStatusLookup;
 
 	@Column(DataType.DATEONLY)
-	declare installed_at: string | null;
+	declare installedAt: string | null;
 
 	@HasOne(() => EquipmentPassport)
 	declare passport: EquipmentPassport;

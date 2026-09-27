@@ -1,5 +1,18 @@
-import { Sequelize } from 'sequelize';
+import 'reflect-metadata';
+import { Sequelize } from 'sequelize-typescript';
 import * as z from 'zod';
+import { AssigneeRoleLookup } from '../../models/assignee-role-lookup.model.ts';
+import { Equipment } from '../../models/equipment.model.ts';
+import { EquipmentPassport } from '../../models/equipment-passport.model.ts';
+import { EquipmentStatusLookup } from '../../models/equipment-status-lookup.model.ts';
+import { EquipmentTypeLookup } from '../../models/equipment-type-lookup.model.ts';
+import { MaintenanceRequest } from '../../models/maintenance-request.model.ts';
+import { RequestAssignee } from '../../models/request-assignee.model.ts';
+import { RequestPriorityLookup } from '../../models/request-priority-lookup.model.ts';
+import { RequestStatusHistory } from '../../models/request-status-history.model.ts';
+import { RequestStatusLookup } from '../../models/request-status-lookup.model.ts';
+import { Site } from '../../models/site.model.ts';
+import { Technician } from '../../models/technician.model.ts';
 import { logger } from './logger.ts';
 
 const postgresEnvSchema = z.object({
@@ -24,4 +37,18 @@ export const sequelize = new Sequelize({
 	pool: { max: 10, min: 2, acquire: 30000, idle: 10000 },
 	database: env.POSTGRES_DB,
 	logging: (sql) => logger.debug(sql),
+	models: [
+		Site,
+		Equipment,
+		EquipmentPassport,
+		MaintenanceRequest,
+		Technician,
+		RequestAssignee,
+		RequestStatusHistory,
+		EquipmentStatusLookup,
+		EquipmentTypeLookup,
+		RequestPriorityLookup,
+		RequestStatusLookup,
+		AssigneeRoleLookup,
+	],
 });

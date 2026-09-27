@@ -8,7 +8,11 @@ import {
 	Table,
 } from 'sequelize-typescript';
 
-@Table({ tableName: 'request_status_lookup', timestamps: false })
+@Table({
+	tableName: 'request_status_lookup',
+	timestamps: false,
+	underscored: true,
+})
 export class RequestStatusLookup extends Model {
 	@PrimaryKey
 	@Column(DataType.TEXT)
@@ -17,5 +21,5 @@ export class RequestStatusLookup extends Model {
 	@AllowNull(false)
 	@Default(false)
 	@Column(DataType.BOOLEAN)
-	declare is_terminal: boolean;
+	declare isTerminal: boolean;
 }

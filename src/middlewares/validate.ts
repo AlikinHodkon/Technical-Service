@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 import type { ZodType } from 'zod';
-import { ValidationError } from '../errors/error.ts';
+import { BadRequestError, ValidationError } from '../errors/error.ts';
 
 export type ValidationSchemas = {
 	body?: ZodType;
@@ -32,15 +32,15 @@ export function validate(schemas: ValidationSchemas) {
 
 			const result = schema.safeParse(req[part]);
 			if (!result.success) {
-				return next(
-					new ValidationError({
-						issues: result.error.issues.map((issue) => ({
-							path: issue.path.map(String),
-							code: issue.code,
-							message: issue.message,
-						})),
-					}),
-				);
+				const issues = {
+					issues: result.error.issues.map((issue) => ({
+						path: issue.path.map(String),
+						code: issue.code,
+						message: issue.message,
+					})),
+				};
+				const ErrorClass = part === 'query' ? BadRequestError : ValidationError;
+				return next(new ErrorClass(issues));
 			}
 			req.valid[part] = result.data;
 		}

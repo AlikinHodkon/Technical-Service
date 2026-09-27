@@ -18,9 +18,17 @@ export const weatherServiceGetForEquipment = async (equipmentId: string) => {
 	const equipment = await equipmentFindById(equipmentId);
 	if (!equipment) throw new NotFoundError('Оборудование', 'не найдено');
 
+	const coordinates = equipment.site?.coordinates as
+		| { lat: number; lon: number }
+		| null
+		| undefined;
+	if (!coordinates) {
+		throw new NotFoundError('Координаты площадки', 'не заданы');
+	}
+
 	const forecast = await getForecast(
-		equipment.location.lat,
-		equipment.location.lon,
+		coordinates.lat,
+		coordinates.lon,
 		FORECAST_DAYS,
 	);
 
@@ -42,7 +50,7 @@ export const weatherServiceGetForEquipment = async (equipmentId: string) => {
 
 	return {
 		equipmentId: equipment.id,
-		location: equipment.location,
+		location: coordinates,
 		timezone: forecast.timezone,
 		days,
 	};

@@ -9,12 +9,16 @@ import {
 } from 'sequelize-typescript';
 import { Equipment } from './equipment.model.ts';
 
-@Table({ tableName: 'equipment_passports', timestamps: false })
+@Table({
+	tableName: 'equipment_passports',
+	timestamps: false,
+	underscored: true,
+})
 export class EquipmentPassport extends Model {
 	@PrimaryKey
 	@ForeignKey(() => Equipment)
 	@Column(DataType.UUID)
-	declare equipment_id: string;
+	declare equipmentId: string;
 
 	@BelongsTo(() => Equipment)
 	declare equipment: Equipment;
@@ -26,8 +30,8 @@ export class EquipmentPassport extends Model {
 	declare model: string | null;
 
 	@Column(DataType.DECIMAL)
-	declare rated_power: number | null;
+	declare ratedPower: number | null;
 
 	@Column(DataType.DATEONLY)
-	declare last_inspection_at: string | null;
+	declare lastInspectionAt: string | null;
 }
