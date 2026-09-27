@@ -47,6 +47,10 @@
 		{
 			"key": "requestIdNoTeam",
 			"value": ""
+		},
+		{
+			"key": "siteId",
+			"value": ""
 		}
 	],
 	"item": [
@@ -1668,6 +1672,148 @@
 									"    });",
 									"    pm.collectionVariables.set('rateLimitAttempts', '0');",
 									"}"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Sites",
+			"item": [
+				{
+					"name": "GET /sites/:id/summary — status/priority counts",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/sites/{{siteId}}/summary",
+							"host": ["{{baseUrl}}"],
+							"path": ["sites", "{{siteId}}", "summary"]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 200', () => pm.response.to.have.status(200));",
+									"pm.test('has byStatus and byPriority', () => {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json).to.have.property('byStatus');",
+									"    pm.expect(json).to.have.property('byPriority');",
+									"});"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /sites/:id/summary — unknown id (404)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/sites/00000000-0000-0000-0000-000000000000/summary",
+							"host": ["{{baseUrl}}"],
+							"path": [
+								"sites",
+								"00000000-0000-0000-0000-000000000000",
+								"summary"
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 404', () => pm.response.to.have.status(404));"
+								]
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Reports",
+			"item": [
+				{
+					"name": "GET /reports/equipment-load — default",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/reports/equipment-load",
+							"host": ["{{baseUrl}}"],
+							"path": ["reports", "equipment-load"]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 200', () => pm.response.to.have.status(200));",
+									"pm.test('response is an array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /reports/equipment-load — filtered by minRequests",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/reports/equipment-load?minRequests=1",
+							"host": ["{{baseUrl}}"],
+							"path": ["reports", "equipment-load"],
+							"query": [
+								{
+									"key": "minRequests",
+									"value": "1"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 200', () => pm.response.to.have.status(200));"
+								]
+							}
+						}
+					]
+				},
+				{
+					"name": "GET /reports/equipment-load — invalid minRequests (400)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/reports/equipment-load?minRequests=-1",
+							"host": ["{{baseUrl}}"],
+							"path": ["reports", "equipment-load"],
+							"query": [
+								{
+									"key": "minRequests",
+									"value": "-1"
+								}
+							]
+						}
+					},
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 400', () => pm.response.to.have.status(400));"
 								]
 							}
 						}
