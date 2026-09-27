@@ -12,7 +12,9 @@ import {
 import {
 	equipmentRouter,
 	healthRouter,
+	reportsRouter,
 	requestsRouter,
+	sitesRouter,
 } from './routes/index.ts';
 
 const app = express();
@@ -28,6 +30,8 @@ app.use(express.json({ limit: '100kb' }));
 app.use('/api', healthRouter);
 app.use('/api', equipmentRouter);
 app.use('/api', requestsRouter);
+app.use('/api', sitesRouter);
+app.use('/api', reportsRouter);
 app.use('/', () => {
 	throw new NotFoundError('Маршрут');
 });
