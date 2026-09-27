@@ -166,7 +166,9 @@ new ──────▶ in_progress ──────▶ done
 
 ## Коды ответов
 
-`200`, `201` (с заголовком `Location`), `204`, `207` (массовый импорт заявок — частичный успех), `400` (синтаксически некорректное тело запроса — например, битый JSON), `401` (отсутствующий/неверный `X-API-Key` на мутирующей операции), `403` (CORS), `404`, `409` (конфликт: дубль `serialNumber`, недопустимый переход статуса, удаление оборудования с открытыми заявками), `422` (тело/query/params синтаксически валидны, но не проходят бизнес-валидацию — сюда попадают все ошибки Zod-схем), `429` (rate limit), `503` (внешний погодный API недоступен).
+`200`, `201` (с заголовком `Location`), `204`, `207` (массовый импорт заявок — частичный успех), `400` (синтаксически некорректное тело запроса (битый JSON), а также любая ошибка валидации **query-параметров** — недопустимое значение `limit`/`page`/`sort`/фильтров), `401` (отсутствующий/неверный `X-API-Key` на мутирующей операции), `403` (CORS), `404`, `409` (конфликт: дубль `serialNumber`, недопустимый переход статуса, удаление оборудования с открытыми заявками), `422` (ошибка валидации **тела запроса или params** — бизнес-правила, Zod-схемы для `body`, невалидный uuid в пути), `429` (rate limit), `503` (внешний погодный API недоступен).
+
+`query` разведён с `body`/`params` по разным кодам сознательно: `middlewares/validate.ts` возвращает `BadRequestError` (400) для `query` и `ValidationError` (422) для `body`/`params` — это отдельно требуется для `limit`/`offset` в Кейсе 3 («значения вне диапазона отклоняются с кодом 400») и распространено на остальные query-фильтры для единообразия внутри одного эндпоинта.
 
 ## Примеры запросов
 
@@ -324,6 +326,90 @@ docs/postman/                        # экспортированная Postman-
 
 ```mermaid
 erDiagram
+    SITES {
+        uuid id PK
+        text name
+        text code UK
+        text region
+        jsonb coordinates
+    }
+
+    EQUIPMENT {
+        uuid id PK
+        uuid site_id FK
+        text name
+        text type_code FK
+        text serial_number UK
+        text status_code FK
+        date installed_at
+    }
+
+    EQUIPMENT_PASSPORTS {
+        uuid equipment_id PK, FK
+        text manufacturer
+        text model
+        numeric rated_power
+        date last_inspection_at
+    }
+
+    MAINTENANCE_REQUESTS {
+        uuid id PK
+        uuid equipment_id FK
+        text title
+        text description
+        text priority_code FK
+        text status_code FK
+        timestamptz planned_at
+        text author
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    REQUEST_STATUS_HISTORY {
+        uuid id PK
+        uuid request_id FK
+        text old_status_code FK
+        text new_status_code FK
+        text author
+        text comment
+        timestamptz changed_at
+    }
+
+    TECHNICIANS {
+        uuid id PK
+        text full_name
+        text specialization
+        text employee_number UK
+    }
+
+    REQUEST_ASSIGNEES {
+        uuid request_id PK, FK
+        uuid technician_id PK, FK
+        text role_code FK
+        int hours
+    }
+
+    EQUIPMENT_TYPE_LOOKUP {
+        text code PK
+    }
+
+    EQUIPMENT_STATUS_LOOKUP {
+        text code PK
+    }
+
+    REQUEST_STATUS_LOOKUP {
+        text code PK
+        boolean is_terminal
+    }
+
+    REQUEST_PRIORITY_LOOKUP {
+        text code PK
+    }
+
+    ASSIGNEE_ROLE_LOOKUP {
+        text code PK
+    }
+
     SITES ||--o{ EQUIPMENT : "site_id RESTRICT"
     EQUIPMENT ||--o| EQUIPMENT_PASSPORTS : "equipment_id CASCADE"
     EQUIPMENT ||--o{ MAINTENANCE_REQUESTS : "equipment_id RESTRICT"
@@ -374,6 +460,10 @@ erDiagram
 | GET | `/api/reports/equipment-load` | нагрузка на оборудование (raw SQL), с фильтрами `dateFrom`/`dateTo`/`minRequests` |
 
 Карточка оборудования дополнительно отдаёт паспорт, карточка заявки — назначенных специалистов с ролями.
+
+Postman-коллекция (`docs/postman/Technical-Service.postman_collection.json`) дополнена под все пять эндпоинтов выше: новые папки Sites/Reports, плюс негативные сценарии в Requests — назначение несуществующего специалиста (`404`), бригада без ведущего специалиста (`422`), перевод в `in_progress` без бригады (`409`), снятие несуществующего назначения (`404`). Прежние запросы Кейса 2 не менялись.
+
+Сценарий «повторное назначение того же специалиста — `409`» в коллекцию не добавлен: `POST .../assignees` в текущей реализации полностью заменяет список бригады (`destroy` + `bulkCreate` одной транзакцией), а дубль `technicianId` внутри одного запроса отсекается ещё на уровне Zod-валидатора (`422`, до обращения к БД). `UniqueConstraintError → 409` в сервисе формально есть, но при таком дизайне эндпоинта не находится сценария, где он реально достижим через HTTP.
 
 ### SQL-отчёты
 
