@@ -1,6 +1,7 @@
 import {
 	DatabaseError,
 	ForeignKeyConstraintError,
+	Op,
 	UniqueConstraintError,
 	type WhereOptions,
 } from 'sequelize';
@@ -66,6 +67,7 @@ export const equipmentServiceGetAll = async (query: GetEquipmentQuery) => {
 	if (query.status) where.statusCode = query.status;
 	if (query.type) where.typeCode = query.type;
 	if (query.siteId) where.siteId = query.siteId;
+	if (query.search) where.name = { [Op.iLike]: `%${query.search}%` };
 
 	const sortField = SORT_FIELD_MAP[query.sort] ?? query.sort;
 	const { count, rows } = await equipmentFindMany({

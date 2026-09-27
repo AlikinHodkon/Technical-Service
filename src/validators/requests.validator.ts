@@ -40,6 +40,7 @@ export const getRequestsQuerySchema = z.object({
 	equipmentId: z.uuid().optional(),
 	dateFrom: z.iso.datetime().optional(),
 	dateTo: z.iso.datetime().optional(),
+	search: z.string().min(1).max(100).optional(),
 	sort: z.enum(SORTABLE_FIELDS).optional().default('createdAt'),
 	order: z.enum(['ASC', 'DESC']).optional().default('DESC'),
 	page: z.coerce.number().int().positive().default(1),
