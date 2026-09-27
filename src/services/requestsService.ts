@@ -63,6 +63,7 @@ export const requestsServiceGetAll = async (query: GetRequestsQuery) => {
 	if (query.status) where.statusCode = query.status;
 	if (query.priority) where.priorityCode = query.priority;
 	if (query.equipmentId) where.equipmentId = query.equipmentId;
+	if (query.search) where.title = { [Op.iLike]: `%${query.search}%` };
 	if (query.dateFrom || query.dateTo) {
 		where.createdAt = {};
 		if (query.dateFrom) where.createdAt[Op.gte] = query.dateFrom;

@@ -45,6 +45,7 @@ export const getEquipmentQuerySchema = z.object({
 	type: z.enum(EQUIPMENT_TYPE_CODES).optional(),
 	status: z.enum(EQUIPMENT_STATUS_CODES).optional(),
 	siteId: z.uuid().optional(),
+	search: z.string().min(1).max(100).optional(),
 	sort: z.enum(SORTABLE_FIELDS).optional().default('installedAt'),
 	order: z.enum(['ASC', 'DESC']).optional().default('DESC'),
 	page: z.coerce.number().int().positive().default(1),
