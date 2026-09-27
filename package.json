@@ -11,6 +11,7 @@
 		"db:migrate:undo:all": "node --env-file=.env node_modules/sequelize-cli/lib/sequelize db:migrate:undo:all",
 		"db:seed": "node --env-file=.env node_modules/sequelize-cli/lib/sequelize db:seed:all",
 		"db:seed:undo:all": "node --env-file=.env node_modules/sequelize-cli/lib/sequelize db:seed:undo:all",
+		"db:migrate-legacy": "tsx --env-file=.env scripts/migrate-legacy-data.ts",
 		"test": "node --env-file=.env --env-file=.env.test node_modules/vitest/vitest.mjs run",
 		"test:watch": "node --env-file=.env --env-file=.env.test node_modules/vitest/vitest.mjs",
 		"typecheck": "tsc --noEmit",
