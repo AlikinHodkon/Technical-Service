@@ -413,7 +413,7 @@ describe('GET /api/equipment/:id/weather', () => {
 		expect(response.status).toBe(503);
 
 		vi.unstubAllGlobals();
-		const health = await request(app).get('/api/health');
+		const health = await request(app).get('/api/health/live');
 		expect(health.status).toBe(200);
 	});
 

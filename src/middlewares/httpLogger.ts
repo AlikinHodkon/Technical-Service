@@ -1,8 +1,9 @@
 import { randomUUID } from 'node:crypto';
+import type { Request, Response } from 'express';
 import { pinoHttp } from 'pino-http';
 import { logger } from '../config/logger.ts';
 
-export const httpLogger = pinoHttp({
+export const httpLogger = pinoHttp<Request, Response>({
 	logger,
 	genReqId(req, res) {
 		const existing = req.id ?? req.headers['x-request-id'];
@@ -17,6 +18,6 @@ export const httpLogger = pinoHttp({
 		return 'info';
 	},
 	autoLogging: {
-		ignore: (req) => req.url === '/health',
+		ignore: (req) => req.url.startsWith('/api/health'),
 	},
 });
