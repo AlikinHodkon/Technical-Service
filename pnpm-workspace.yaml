@@ -1,3 +1,5 @@
 allowBuilds:
+  # Скрипт телеметрии swagger-ui-dist, а не сборка — не нужен приложению.
+  '@scarf/scarf': false
   esbuild: true
   lefthook: true
