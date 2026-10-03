@@ -64,6 +64,7 @@ docker compose up --build
 |---|---|
 | `pnpm test` | прогнать тесты (Vitest + Supertest) |
 | `pnpm test:watch` | тесты в watch-режиме |
+| `pnpm test:coverage` | тесты с отчётом о покрытии (`coverage/index.html`) |
 | `pnpm typecheck` | проверка типов (`tsc --noEmit`) |
 | `pnpm lint` / `pnpm format` | проверка / автофикс стиля (Biome) |
 
