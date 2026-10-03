@@ -8,7 +8,7 @@ services:
     labels:
         logging: promtail
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health"]
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/api/health/ready"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -77,6 +77,7 @@ services:
 
   grafana:
     image: grafana/grafana
+    env_file: .env
     volumes:
       - grafana-storage:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
