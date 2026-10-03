@@ -1,13 +1,15 @@
 import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import app from '../app.ts';
+import { bearer, makeToken } from '../testUtils/authFixtures.ts';
 import {
 	createTestSite,
 	createTestTechnician,
 	resetDb,
 } from '../testUtils/dbFixtures.ts';
 
-const API_KEY = 'dev-api-key';
+const adminToken = makeToken('admin');
+const viewerToken = makeToken('viewer');
 
 const baseEquipment = (siteId: string) => ({
 	siteId,
@@ -29,7 +31,7 @@ const createEquipment = async (overrides: Record<string, unknown> = {}) => {
 	const site = await createTestSite();
 	return request(app)
 		.post('/api/equipment')
-		.set('X-API-Key', API_KEY)
+		.set('Authorization', bearer(adminToken))
 		.send({ ...baseEquipment(site.id), ...overrides });
 };
 
@@ -39,14 +41,14 @@ const createRequestFor = (
 ) =>
 	request(app)
 		.post('/api/requests')
-		.set('X-API-Key', API_KEY)
+		.set('Authorization', bearer(adminToken))
 		.send({ ...baseRequest, equipmentId, ...overrides });
 
 const assignLead = async (requestId: string) => {
 	const technician = await createTestTechnician();
 	await request(app)
 		.post(`/api/requests/${requestId}/assignees`)
-		.set('X-API-Key', API_KEY)
+		.set('Authorization', bearer(adminToken))
 		.send([{ technicianId: technician.id, role: 'lead' }]);
 	return technician;
 };
@@ -83,7 +85,7 @@ describe('POST /api/requests', () => {
 		expect(response.status).toBe(422);
 	});
 
-	it('returns 401 without an API key', async () => {
+	it('returns 401 without a token', async () => {
 		const equipment = await createEquipment();
 
 		const response = await request(app)
@@ -100,7 +102,7 @@ describe('POST /api/requests/bulk', () => {
 
 		const response = await request(app)
 			.post('/api/requests/bulk')
-			.set('X-API-Key', API_KEY)
+			.set('Authorization', bearer(adminToken))
 			.send({
 				requests: [
 					{ ...baseRequest, equipmentId: equipment.body.id },
@@ -132,25 +134,27 @@ describe('POST /api/requests/bulk', () => {
 
 		await request(app)
 			.post('/api/requests/bulk')
-			.set('X-API-Key', API_KEY)
+			.set('Authorization', bearer(adminToken))
 			.send({
 				requests: [{ ...baseRequest, equipmentId: equipment.body.id }],
 			});
 
-		const list = await request(app).get('/api/requests');
+		const list = await request(app)
+			.get('/api/requests')
+			.set('Authorization', bearer(adminToken));
 		expect(list.body.total).toBe(1);
 	});
 
 	it('returns 422 when the requests array is empty', async () => {
 		const response = await request(app)
 			.post('/api/requests/bulk')
-			.set('X-API-Key', API_KEY)
+			.set('Authorization', bearer(adminToken))
 			.send({ requests: [] });
 
 		expect(response.status).toBe(422);
 	});
 
-	it('returns 401 without an API key', async () => {
+	it('returns 401 without a token', async () => {
 		const equipment = await createEquipment();
 
 		const response = await request(app)
@@ -169,7 +173,9 @@ describe('GET /api/requests', () => {
 		await createRequestFor(equipment.body.id, { priority: 'low' });
 		await createRequestFor(equipment.body.id, { priority: 'high' });
 
-		const response = await request(app).get('/api/requests');
+		const response = await request(app)
+			.get('/api/requests')
+			.set('Authorization', bearer(adminToken));
 
 		expect(response.status).toBe(200);
 		expect(response.body.total).toBe(2);
@@ -184,6 +190,7 @@ describe('GET /api/requests', () => {
 
 		const response = await request(app)
 			.get('/api/requests')
+			.set('Authorization', bearer(adminToken))
 			.query({ priority: 'high', equipmentId: equipmentB.body.id });
 
 		expect(response.status).toBe(200);
@@ -198,7 +205,9 @@ describe('GET /api/requests/:id', () => {
 		const created = await createRequestFor(equipment.body.id);
 		const technician = await assignLead(created.body.id);
 
-		const response = await request(app).get(`/api/requests/${created.body.id}`);
+		const response = await request(app)
+			.get(`/api/requests/${created.body.id}`)
+			.set('Authorization', bearer(adminToken));
 
 		expect(response.status).toBe(200);
 		expect(response.body.id).toBe(created.body.id);
@@ -207,15 +216,17 @@ describe('GET /api/requests/:id', () => {
 	});
 
 	it('returns 404 for unknown id', async () => {
-		const response = await request(app).get(
-			`/api/requests/${crypto.randomUUID()}`,
-		);
+		const response = await request(app)
+			.get(`/api/requests/${crypto.randomUUID()}`)
+			.set('Authorization', bearer(adminToken));
 
 		expect(response.status).toBe(404);
 	});
 
 	it('returns 422 for a malformed id', async () => {
-		const response = await request(app).get('/api/requests/unknown-id');
+		const response = await request(app)
+			.get('/api/requests/unknown-id')
+			.set('Authorization', bearer(adminToken));
 
 		expect(response.status).toBe(422);
 	});
@@ -228,7 +239,7 @@ describe('PATCH /api/requests/:id', () => {
 
 		const response = await request(app)
 			.patch(`/api/requests/${created.body.id}`)
-			.set('X-API-Key', API_KEY)
+			.set('Authorization', bearer(adminToken))
 			.send({ priority: 'critical' });
 
 		expect(response.status).toBe(200);
@@ -241,7 +252,7 @@ describe('PATCH /api/requests/:id', () => {
 
 		const response = await request(app)
 			.patch(`/api/requests/${created.body.id}`)
-			.set('X-API-Key', API_KEY)
+			.set('Authorization', bearer(adminToken))
 			.send({ status: 'done', priority: 'high' });
 
 		expect(response.status).toBe(200);
@@ -252,7 +263,7 @@ describe('PATCH /api/requests/:id', () => {
 	it('returns 404 for unknown id', async () => {
 		const response = await request(app)
 			.patch(`/api/requests/${crypto.randomUUID()}`)
-			.set('X-API-Key', API_KEY)
+			.set('Authorization', bearer(adminToken))
 			.send({ priority: 'high' });
 
 		expect(response.status).toBe(404);
@@ -261,13 +272,13 @@ describe('PATCH /api/requests/:id', () => {
 	it('returns 422 for a malformed id', async () => {
 		const response = await request(app)
 			.patch('/api/requests/unknown-id')
-			.set('X-API-Key', API_KEY)
+			.set('Authorization', bearer(adminToken))
 			.send({ priority: 'high' });
 
 		expect(response.status).toBe(422);
 	});
 
-	it('returns 401 without an API key', async () => {
+	it('returns 401 without a token', async () => {
 		const equipment = await createEquipment();
 		const created = await createRequestFor(equipment.body.id);
 
@@ -276,6 +287,18 @@ describe('PATCH /api/requests/:id', () => {
 			.send({ priority: 'high' });
 
 		expect(response.status).toBe(401);
+	});
+
+	it('returns 403 for a viewer', async () => {
+		const equipment = await createEquipment();
+		const created = await createRequestFor(equipment.body.id);
+
+		const response = await request(app)
+			.patch(`/api/requests/${created.body.id}`)
+			.set('Authorization', bearer(viewerToken))
+			.send({ priority: 'high' });
+
+		expect(response.status).toBe(403);
 	});
 });
 
@@ -287,7 +310,7 @@ describe('PATCH /api/requests/:id/status', () => {
 
 		const response = await request(app)
 			.patch(`/api/requests/${created.body.id}/status`)
-			.set('X-API-Key', API_KEY)
+			.set('Authorization', bearer(adminToken))
 			.send({ status: 'in_progress', author: 'Тест' });
 
 		expect(response.status).toBe(200);
@@ -300,7 +323,7 @@ describe('PATCH /api/requests/:id/status', () => {
 
 		const response = await request(app)
 			.patch(`/api/requests/${created.body.id}/status`)
-			.set('X-API-Key', API_KEY)
+			.set('Authorization', bearer(adminToken))
 			.send({ status: 'in_progress', author: 'Тест' });
 
 		expect(response.status).toBe(409);
@@ -312,7 +335,7 @@ describe('PATCH /api/requests/:id/status', () => {
 
 		const response = await request(app)
 			.patch(`/api/requests/${created.body.id}/status`)
-			.set('X-API-Key', API_KEY)
+			.set('Authorization', bearer(adminToken))
 			.send({ status: 'done', author: 'Тест' });
 
 		expect(response.status).toBe(409);
@@ -323,12 +346,12 @@ describe('PATCH /api/requests/:id/status', () => {
 		const created = await createRequestFor(equipment.body.id);
 		await request(app)
 			.patch(`/api/requests/${created.body.id}/status`)
-			.set('X-API-Key', API_KEY)
+			.set('Authorization', bearer(adminToken))
 			.send({ status: 'rejected', author: 'Тест' });
 
 		const response = await request(app)
 			.patch(`/api/requests/${created.body.id}/status`)
-			.set('X-API-Key', API_KEY)
+			.set('Authorization', bearer(adminToken))
 			.send({ status: 'in_progress', author: 'Тест' });
 
 		expect(response.status).toBe(409);
@@ -340,12 +363,12 @@ describe('PATCH /api/requests/:id/status', () => {
 		await assignLead(created.body.id);
 		await request(app)
 			.patch(`/api/requests/${created.body.id}/status`)
-			.set('X-API-Key', API_KEY)
+			.set('Authorization', bearer(adminToken))
 			.send({ status: 'in_progress', author: 'Тест' });
 
-		const history = await request(app).get(
-			`/api/requests/${created.body.id}/history`,
-		);
+		const history = await request(app)
+			.get(`/api/requests/${created.body.id}/history`)
+			.set('Authorization', bearer(adminToken));
 
 		expect(history.status).toBe(200);
 		expect(history.body).toHaveLength(1);
@@ -359,7 +382,7 @@ describe('PATCH /api/requests/:id/status', () => {
 	it('returns 404 for unknown id', async () => {
 		const response = await request(app)
 			.patch(`/api/requests/${crypto.randomUUID()}/status`)
-			.set('X-API-Key', API_KEY)
+			.set('Authorization', bearer(adminToken))
 			.send({ status: 'in_progress', author: 'Тест' });
 
 		expect(response.status).toBe(404);
@@ -368,13 +391,13 @@ describe('PATCH /api/requests/:id/status', () => {
 	it('returns 422 for a malformed id', async () => {
 		const response = await request(app)
 			.patch('/api/requests/unknown-id/status')
-			.set('X-API-Key', API_KEY)
+			.set('Authorization', bearer(adminToken))
 			.send({ status: 'in_progress', author: 'Тест' });
 
 		expect(response.status).toBe(422);
 	});
 
-	it('returns 401 without an API key', async () => {
+	it('returns 401 without a token', async () => {
 		const equipment = await createEquipment();
 		const created = await createRequestFor(equipment.body.id);
 
@@ -383,6 +406,40 @@ describe('PATCH /api/requests/:id/status', () => {
 			.send({ status: 'in_progress', author: 'Тест' });
 
 		expect(response.status).toBe(401);
+	});
+
+	it('allows a technician assigned to the request (ABAC)', async () => {
+		const equipment = await createEquipment();
+		const created = await createRequestFor(equipment.body.id);
+		const technician = await assignLead(created.body.id);
+		const technicianToken = makeToken('technician', {
+			technicianId: technician.id,
+		});
+
+		const response = await request(app)
+			.patch(`/api/requests/${created.body.id}/status`)
+			.set('Authorization', bearer(technicianToken))
+			.send({ status: 'in_progress', author: 'Тест' });
+
+		expect(response.status).toBe(200);
+		expect(response.body.status).toBe('in_progress');
+	});
+
+	it('returns 403 for a technician not assigned to the request (ABAC)', async () => {
+		const equipment = await createEquipment();
+		const created = await createRequestFor(equipment.body.id);
+		await assignLead(created.body.id);
+		const otherTechnician = await createTestTechnician();
+		const technicianToken = makeToken('technician', {
+			technicianId: otherTechnician.id,
+		});
+
+		const response = await request(app)
+			.patch(`/api/requests/${created.body.id}/status`)
+			.set('Authorization', bearer(technicianToken))
+			.send({ status: 'in_progress', author: 'Тест' });
+
+		expect(response.status).toBe(403);
 	});
 });
 
@@ -393,19 +450,19 @@ describe('DELETE /api/requests/:id', () => {
 
 		const response = await request(app)
 			.delete(`/api/requests/${created.body.id}`)
-			.set('X-API-Key', API_KEY);
+			.set('Authorization', bearer(adminToken));
 		expect(response.status).toBe(204);
 
-		const getResponse = await request(app).get(
-			`/api/requests/${created.body.id}`,
-		);
+		const getResponse = await request(app)
+			.get(`/api/requests/${created.body.id}`)
+			.set('Authorization', bearer(adminToken));
 		expect(getResponse.status).toBe(404);
 	});
 
 	it('returns 404 for unknown id', async () => {
 		const response = await request(app)
 			.delete(`/api/requests/${crypto.randomUUID()}`)
-			.set('X-API-Key', API_KEY);
+			.set('Authorization', bearer(adminToken));
 
 		expect(response.status).toBe(404);
 	});
@@ -413,12 +470,12 @@ describe('DELETE /api/requests/:id', () => {
 	it('returns 422 for a malformed id', async () => {
 		const response = await request(app)
 			.delete('/api/requests/unknown-id')
-			.set('X-API-Key', API_KEY);
+			.set('Authorization', bearer(adminToken));
 
 		expect(response.status).toBe(422);
 	});
 
-	it('returns 401 without an API key', async () => {
+	it('returns 401 without a token', async () => {
 		const equipment = await createEquipment();
 		const created = await createRequestFor(equipment.body.id);
 
@@ -439,7 +496,7 @@ describe('POST /api/requests/:id/assignees', () => {
 
 		const response = await request(app)
 			.post(`/api/requests/${created.body.id}/assignees`)
-			.set('X-API-Key', API_KEY)
+			.set('Authorization', bearer(adminToken))
 			.send([
 				{ technicianId: lead.id, role: 'lead', hours: 4 },
 				{ technicianId: member.id, role: 'member' },
@@ -456,7 +513,7 @@ describe('POST /api/requests/:id/assignees', () => {
 
 		const response = await request(app)
 			.post(`/api/requests/${created.body.id}/assignees`)
-			.set('X-API-Key', API_KEY)
+			.set('Authorization', bearer(adminToken))
 			.send([{ technicianId: member.id, role: 'member' }]);
 
 		expect(response.status).toBe(422);
@@ -470,7 +527,7 @@ describe('POST /api/requests/:id/assignees', () => {
 
 		const response = await request(app)
 			.post(`/api/requests/${created.body.id}/assignees`)
-			.set('X-API-Key', API_KEY)
+			.set('Authorization', bearer(adminToken))
 			.send([
 				{ technicianId: leadA.id, role: 'lead' },
 				{ technicianId: leadB.id, role: 'lead' },
@@ -486,7 +543,7 @@ describe('POST /api/requests/:id/assignees', () => {
 
 		const response = await request(app)
 			.post(`/api/requests/${created.body.id}/assignees`)
-			.set('X-API-Key', API_KEY)
+			.set('Authorization', bearer(adminToken))
 			.send([
 				{ technicianId: technician.id, role: 'lead' },
 				{ technicianId: technician.id, role: 'member' },
@@ -500,7 +557,7 @@ describe('POST /api/requests/:id/assignees', () => {
 
 		const response = await request(app)
 			.post(`/api/requests/${crypto.randomUUID()}/assignees`)
-			.set('X-API-Key', API_KEY)
+			.set('Authorization', bearer(adminToken))
 			.send([{ technicianId: technician.id, role: 'lead' }]);
 
 		expect(response.status).toBe(404);
@@ -512,7 +569,7 @@ describe('POST /api/requests/:id/assignees', () => {
 
 		const response = await request(app)
 			.post(`/api/requests/${created.body.id}/assignees`)
-			.set('X-API-Key', API_KEY)
+			.set('Authorization', bearer(adminToken))
 			.send([{ technicianId: crypto.randomUUID(), role: 'lead' }]);
 
 		expect(response.status).toBe(404);
@@ -526,17 +583,17 @@ describe('POST /api/requests/:id/assignees', () => {
 		const member = await createTestTechnician();
 		const badResponse = await request(app)
 			.post(`/api/requests/${created.body.id}/assignees`)
-			.set('X-API-Key', API_KEY)
+			.set('Authorization', bearer(adminToken))
 			.send([{ technicianId: member.id, role: 'member' }]);
 		expect(badResponse.status).toBe(422);
 
-		const requestCard = await request(app).get(
-			`/api/requests/${created.body.id}`,
-		);
+		const requestCard = await request(app)
+			.get(`/api/requests/${created.body.id}`)
+			.set('Authorization', bearer(adminToken));
 		expect(requestCard.body.technicians).toHaveLength(1);
 	});
 
-	it('returns 401 without an API key', async () => {
+	it('returns 401 without a token', async () => {
 		const equipment = await createEquipment();
 		const created = await createRequestFor(equipment.body.id);
 		const technician = await createTestTechnician();
@@ -546,6 +603,22 @@ describe('POST /api/requests/:id/assignees', () => {
 			.send([{ technicianId: technician.id, role: 'lead' }]);
 
 		expect(response.status).toBe(401);
+	});
+
+	it('returns 403 for a technician (admin-only)', async () => {
+		const equipment = await createEquipment();
+		const created = await createRequestFor(equipment.body.id);
+		const technician = await createTestTechnician();
+		const technicianToken = makeToken('technician', {
+			technicianId: technician.id,
+		});
+
+		const response = await request(app)
+			.post(`/api/requests/${created.body.id}/assignees`)
+			.set('Authorization', bearer(technicianToken))
+			.send([{ technicianId: technician.id, role: 'lead' }]);
+
+		expect(response.status).toBe(403);
 	});
 });
 
@@ -557,7 +630,7 @@ describe('DELETE /api/requests/:id/assignees/:userId', () => {
 
 		const response = await request(app)
 			.delete(`/api/requests/${created.body.id}/assignees/${technician.id}`)
-			.set('X-API-Key', API_KEY);
+			.set('Authorization', bearer(adminToken));
 
 		expect(response.status).toBe(204);
 	});
@@ -569,12 +642,12 @@ describe('DELETE /api/requests/:id/assignees/:userId', () => {
 
 		const response = await request(app)
 			.delete(`/api/requests/${created.body.id}/assignees/${technician.id}`)
-			.set('X-API-Key', API_KEY);
+			.set('Authorization', bearer(adminToken));
 
 		expect(response.status).toBe(404);
 	});
 
-	it('returns 401 without an API key', async () => {
+	it('returns 401 without a token', async () => {
 		const equipment = await createEquipment();
 		const created = await createRequestFor(equipment.body.id);
 		const technician = await assignLead(created.body.id);
@@ -589,9 +662,9 @@ describe('DELETE /api/requests/:id/assignees/:userId', () => {
 
 describe('GET /api/requests/:id/history', () => {
 	it('returns 404 for unknown id', async () => {
-		const response = await request(app).get(
-			`/api/requests/${crypto.randomUUID()}/history`,
-		);
+		const response = await request(app)
+			.get(`/api/requests/${crypto.randomUUID()}/history`)
+			.set('Authorization', bearer(adminToken));
 
 		expect(response.status).toBe(404);
 	});

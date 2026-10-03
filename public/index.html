@@ -16,6 +16,13 @@
 <body>
 	<h1>Заявки на обслуживание</h1>
 
+	<form id="loginForm">
+		<input name="email" type="email" placeholder="Email" required>
+		<input name="password" type="password" placeholder="Пароль" required>
+		<button type="submit">Войти</button>
+	</form>
+	<div id="authStatus">Не авторизован</div>
+
 	<form id="filtersForm">
 		<select name="status">
 			<option value="">Статус: любой</option>
@@ -50,9 +57,9 @@
 
 	<h2>Создать заявку</h2>
 	<form id="requestForm">
-		<input name="apiKey" placeholder="API-ключ" required>
 		<input name="equipmentId" placeholder="ID оборудования" required>
 		<input name="title" placeholder="Название" required minlength="5" maxlength="120">
+		<input name="author" placeholder="Автор заявки" required>
 		<textarea name="description" placeholder="Описание (необязательно)" maxlength="2000"></textarea>
 		<select name="priority" required>
 			<option value="low">low</option>
@@ -65,6 +72,6 @@
 	</form>
 	<div id="error"></div>
 
-	<script src="/app.js"></script>
+	<script type="module" src="/app.js"></script>
 </body>
 </html>

@@ -13,7 +13,7 @@ import {
 	updateRequest,
 	updateRequestStatus,
 } from '../controllers/requests.ts';
-import { apiKeyAuth, validate } from '../middlewares/index.ts';
+import { authenticate, authorize, validate } from '../middlewares/index.ts';
 import { idParamSchema } from '../validators/common.validator.ts';
 import {
 	requestAssigneeParamsSchema,
@@ -29,6 +29,8 @@ import {
 
 const router = Router();
 
+router.use(authenticate);
+
 router.get(
 	'/requests',
 	validate({ query: getRequestsQuerySchema }),
@@ -36,13 +38,13 @@ router.get(
 );
 router.post(
 	'/requests',
-	apiKeyAuth,
+	authorize('technician', 'admin'),
 	validate({ body: createRequestSchema }),
 	createRequest,
 );
 router.post(
 	'/requests/bulk',
-	apiKeyAuth,
+	authorize('technician', 'admin'),
 	validate({ body: bulkCreateRequestsSchema }),
 	bulkCreateRequests,
 );
@@ -53,19 +55,21 @@ router.get(
 );
 router.patch(
 	'/requests/:id',
-	apiKeyAuth,
+	authorize('technician', 'admin'),
 	validate({ params: idParamSchema, body: updateRequestSchema }),
 	updateRequest,
 );
 router.patch(
 	'/requests/:id/status',
-	apiKeyAuth,
+	// technician/admin проходят сюда; дальше в requestsServiceUpdateStatus —
+	// ABAC-проверка, что technician назначен именно на эту заявку.
+	authorize('technician', 'admin'),
 	validate({ params: idParamSchema, body: updateRequestStatusSchema }),
 	updateRequestStatus,
 );
 router.delete(
 	'/requests/:id',
-	apiKeyAuth,
+	authorize('admin'),
 	validate({ params: idParamSchema }),
 	deleteRequest,
 );
@@ -76,13 +80,13 @@ router.get(
 );
 router.post(
 	'/requests/:id/assignees',
-	apiKeyAuth,
+	authorize('admin'),
 	validate({ params: idParamSchema, body: setRequestAssigneesSchema }),
 	setRequestAssignees,
 );
 router.delete(
 	'/requests/:id/assignees/:userId',
-	apiKeyAuth,
+	authorize('admin'),
 	validate({ params: requestAssigneeParamsSchema }),
 	removeRequestAssignee,
 );

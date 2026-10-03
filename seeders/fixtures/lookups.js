@@ -11,4 +11,5 @@ module.exports = {
 	],
 	requestPriority: ['low', 'medium', 'high', 'critical'],
 	assigneeRole: ['lead', 'member'],
+	userRole: ['viewer', 'technician', 'admin'],
 };

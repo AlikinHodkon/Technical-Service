@@ -1,4 +1,6 @@
-export { apiKeyAuth } from './apiKeyAuth.ts';
+export { authenticate } from './authenticate.ts';
+export { authorize } from './authorize.ts';
+export { createAuthRateLimiter } from './authRateLimiter.ts';
 export { contextMiddleware } from './context.ts';
 export { corsMiddleware } from './cors.ts';
 export { errorHandler } from './errorHandler.ts';

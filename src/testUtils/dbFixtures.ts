@@ -2,6 +2,7 @@ import { Equipment } from '../../models/equipment.model.ts';
 import { MaintenanceRequest } from '../../models/maintenance-request.model.ts';
 import { Site } from '../../models/site.model.ts';
 import { Technician } from '../../models/technician.model.ts';
+import { User } from '../../models/user.model.ts';
 import { sequelize } from '../config/db.ts';
 
 // app_user намеренно не может UPDATE/DELETE request_status_history (см.
@@ -21,6 +22,7 @@ export const resetDb = async () => {
 	await Equipment.destroy({ where: {}, force: true });
 	await Technician.destroy({ where: {}, force: true });
 	await Site.destroy({ where: {}, force: true });
+	await User.destroy({ where: {}, force: true });
 };
 
 export const createTestSite = (

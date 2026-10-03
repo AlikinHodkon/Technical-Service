@@ -3,7 +3,11 @@ import { MaintenanceRequest } from '../../models/maintenance-request.model.ts';
 import { RequestAssignee } from '../../models/request-assignee.model.ts';
 import { RequestStatusHistory } from '../../models/request-status-history.model.ts';
 import { sequelize } from '../config/db.ts';
-import { ConflictError, NotFoundError } from '../errors/error.ts';
+import {
+	ConflictError,
+	ForbiddenError,
+	NotFoundError,
+} from '../errors/error.ts';
 import { equipmentFindById } from '../repositories/equipmentRepositories.ts';
 import {
 	requestsDeleteData,
@@ -30,8 +34,7 @@ const STATUS_TRANSITIONS: Record<RequestStatusCode, RequestStatusCode[]> = {
 	rejected: [],
 };
 
-// Внешний контракт использует priority/status; priorityCode/statusCode
-// заняты в модели под belongsTo-ассоциации, маппинг живёт тут, на границе.
+// см. equipment.validator.ts про схожий маппинг priority/status -> priorityCode/statusCode
 const SORT_FIELD_MAP: Record<string, string> = {
 	priority: 'priorityCode',
 };
@@ -109,6 +112,7 @@ export const requestsServiceUpdate = async (
 export const requestsServiceUpdateStatus = async (
 	id: string,
 	body: UpdateRequestStatusBody,
+	actor: { role: string; technicianId: string | null },
 ) => {
 	return sequelize.transaction(async (t) => {
 		// Лочим саму строку заявки без include — Postgres не разрешает
@@ -120,6 +124,18 @@ export const requestsServiceUpdateStatus = async (
 			lock: t.LOCK.UPDATE,
 		});
 		if (!current) throw new NotFoundError('Заявка', 'не найдена');
+
+		// ABAC: admin может менять статус любой заявки, technician — только
+		// той, куда сам назначен в request_assignees.
+		if (actor.role === 'technician') {
+			const isAssigned = await RequestAssignee.count({
+				where: { requestId: id, technicianId: actor.technicianId },
+				transaction: t,
+			});
+			if (!isAssigned) {
+				throw new ForbiddenError('Вы не назначены на эту заявку');
+			}
+		}
 
 		const allowedTransitions =
 			STATUS_TRANSITIONS[current.statusCode as RequestStatusCode];

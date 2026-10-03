@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import type { MaintenanceRequest } from '../../models/maintenance-request.model.ts';
+import type { AccessTokenPayload } from '../config/jwt.ts';
 import { AppError } from '../errors/error.ts';
 import {
 	requestsServiceCreate,
@@ -100,9 +101,11 @@ export const updateRequest = async (req: Request, res: Response) => {
 };
 
 export const updateRequestStatus = async (req: Request, res: Response) => {
+	const user = req.user as AccessTokenPayload;
 	const requestItem = await requestsServiceUpdateStatus(
 		req.params.id as string,
 		req.valid.body as UpdateRequestStatusBody,
+		{ role: user.role, technicianId: user.technicianId },
 	);
 	return res.status(200).json(requestItem);
 };
