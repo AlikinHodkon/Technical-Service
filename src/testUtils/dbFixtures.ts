@@ -2,6 +2,7 @@ import { Equipment } from '../../models/equipment.model.ts';
 import { MaintenanceRequest } from '../../models/maintenance-request.model.ts';
 import { Site } from '../../models/site.model.ts';
 import { Technician } from '../../models/technician.model.ts';
+import { sequelize } from '../config/db.ts';
 
 // app_user намеренно не может UPDATE/DELETE request_status_history (см.
 // миграцию create-app-role-and-grants — история неизменяема), поэтому здесь
@@ -10,6 +11,12 @@ import { Technician } from '../../models/technician.model.ts';
 // заявок каскадно подчищает и то, и другое. Аналогично equipment_passports
 // каскадно уходит вместе с equipment.
 export const resetDb = async () => {
+	const dbName = sequelize.getDatabaseName();
+	if (!dbName.includes('test')) {
+		throw new Error(
+			`resetDb() вызван против БД "${dbName}" — похоже, это не тестовая база. Проверь POSTGRES_DB/NODE_ENV.`,
+		);
+	}
 	await MaintenanceRequest.destroy({ where: {}, force: true });
 	await Equipment.destroy({ where: {}, force: true });
 	await Technician.destroy({ where: {}, force: true });
