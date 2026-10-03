@@ -2,17 +2,22 @@ import { Router } from 'express';
 import { login, logout, me, refresh, register } from '../controllers/auth.ts';
 import {
 	authenticate,
-	loginRateLimiter,
+	createAuthRateLimiter,
 	validate,
 } from '../middlewares/index.ts';
 import { loginSchema, registerSchema } from '../validators/auth.validator.ts';
 
 const router = Router();
 
-router.post('/auth/register', validate({ body: registerSchema }), register);
+router.post(
+	'/auth/register',
+	createAuthRateLimiter(),
+	validate({ body: registerSchema }),
+	register,
+);
 router.post(
 	'/auth/login',
-	loginRateLimiter,
+	createAuthRateLimiter(),
 	validate({ body: loginSchema }),
 	login,
 );

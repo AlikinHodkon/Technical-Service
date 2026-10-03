@@ -3,10 +3,11 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import app from '../app.ts';
 import { resetDb } from '../testUtils/dbFixtures.ts';
 
-// LOGIN_RATE_LIMIT_MAX в .env.test — 10; остальные тесты этого файла вместе
-// успевают сделать около полудюжины запросов к /login до этого теста, так
-// что запас в 30 попыток гарантированно перешагивает лимит независимо от
-// точного порядка тестов внутри файла.
+// AUTH_RATE_LIMIT_MAX в .env.test — 25. /login и /register у каждого свой
+// счётчик (createAuthRateLimiter() создаёт отдельный инстанс на маршрут),
+// но остальные тесты этого файла всё равно расходуют часть бюджета register
+// (каждый вызов register() в файле делит один и тот же счётчик) — запас в
+// 30 попыток здесь с запасом перекрывает и этот расход, и сам лимит.
 const RATE_LIMIT_PROBE_ATTEMPTS = 30;
 
 const credentials = (overrides: Record<string, unknown> = {}) => ({
@@ -159,13 +160,23 @@ describe('GET /api/auth/me', () => {
 	});
 });
 
-describe('login rate limiting', () => {
+describe('auth rate limiting', () => {
 	it('returns 429 after too many login attempts from the same client', async () => {
 		await register();
 
 		let last: Awaited<ReturnType<typeof login>> | undefined;
 		for (let i = 0; i < RATE_LIMIT_PROBE_ATTEMPTS; i++) {
 			last = await login({ password: 'WrongPassword1!' });
+			if (last.status === 429) break;
+		}
+
+		expect(last?.status).toBe(429);
+	});
+
+	it('returns 429 after too many register attempts from the same client', async () => {
+		let last: Awaited<ReturnType<typeof register>> | undefined;
+		for (let i = 0; i < RATE_LIMIT_PROBE_ATTEMPTS; i++) {
+			last = await register({ email: `flood-${i}@tech-service.local` });
 			if (last.status === 429) break;
 		}
 

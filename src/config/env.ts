@@ -12,12 +12,12 @@ const envSchema = z.object({
 	REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(5000),
 	JWT_ACCESS_SECRET: z.string().min(1),
 	JWT_REFRESH_SECRET: z.string().min(1),
-	LOGIN_RATE_LIMIT_WINDOW_MS: z.coerce
+	AUTH_RATE_LIMIT_WINDOW_MS: z.coerce
 		.number()
 		.int()
 		.positive()
 		.default(15 * 60_000),
-	LOGIN_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(5),
+	AUTH_RATE_LIMIT_MAX: z.coerce.number().int().positive().default(5),
 });
 
 const env = envSchema.parse(process.env);
@@ -39,8 +39,8 @@ export const config = {
 		accessSecret: env.JWT_ACCESS_SECRET,
 		refreshSecret: env.JWT_REFRESH_SECRET,
 	},
-	loginRateLimit: {
-		windowMs: env.LOGIN_RATE_LIMIT_WINDOW_MS,
-		max: env.LOGIN_RATE_LIMIT_MAX,
+	authRateLimit: {
+		windowMs: env.AUTH_RATE_LIMIT_WINDOW_MS,
+		max: env.AUTH_RATE_LIMIT_MAX,
 	},
 };

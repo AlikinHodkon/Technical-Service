@@ -1,10 +1,10 @@
 export { authenticate } from './authenticate.ts';
 export { authorize } from './authorize.ts';
+export { createAuthRateLimiter } from './authRateLimiter.ts';
 export { contextMiddleware } from './context.ts';
 export { corsMiddleware } from './cors.ts';
 export { errorHandler } from './errorHandler.ts';
 export { httpLogger } from './httpLogger.ts';
-export { loginRateLimiter } from './loginRateLimiter.ts';
 export { metricsMiddleware } from './metrics.ts';
 export { createRateLimiter, rateLimiter } from './rateLimiter.ts';
 export { validate } from './validate.ts';
