@@ -6,3 +6,4 @@ storage/
 storage-test/
 nginx/.htpasswd
 nginx/ssl/
+coverage/

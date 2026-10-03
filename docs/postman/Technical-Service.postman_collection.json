@@ -1,7 +1,8 @@
 {
 	"info": {
 		"name": "Technical Service API",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"description": "Запускать по порядку (Auth первой — выставляет {{accessToken}} для всех остальных папок). Перед прогоном Requests вручную впишите в коллекционную переменную technicianId реальный id технического специалиста из сидов (через API создать специалиста нельзя — только сидом) — без него шаги 'assign team'/'in_progress' и всё, что от них зависит ниже по цепочке, вернут 422/404. GET /equipment/:id/weather сработает только для оборудования, у чьей площадки заданы координаты — площадка-заглушка (используется, когда siteId не передан) координат не имеет."
 	},
 	"variable": [
 		{
@@ -9,8 +10,24 @@
 			"value": "http://localhost:3000/api"
 		},
 		{
-			"key": "apiKey",
-			"value": "dev-api-key"
+			"key": "accessToken",
+			"value": ""
+		},
+		{
+			"key": "authEmail",
+			"value": "admin@tech-service.local"
+		},
+		{
+			"key": "authPassword",
+			"value": "Demo12345!"
+		},
+		{
+			"key": "registeredEmail",
+			"value": ""
+		},
+		{
+			"key": "authErrorMessage",
+			"value": ""
 		},
 		{
 			"key": "equipmentId",
@@ -55,17 +72,346 @@
 	],
 	"item": [
 		{
+			"name": "Auth",
+			"item": [
+				{
+					"name": "POST /auth/register — new viewer (201)",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"pm.collectionVariables.set('registeredEmail', 'postman-' + Date.now() + '@tech-service.local');"
+								]
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 201', () => pm.response.to.have.status(201));",
+									"pm.test('role is viewer, no password in body', () => {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json.role).to.eql('viewer');",
+									"    pm.expect(json.password).to.be.undefined;",
+									"    pm.expect(json.passwordHash).to.be.undefined;",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{registeredEmail}}\",\n  \"password\": \"Demo12345!\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/register",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "register"]
+						}
+					}
+				},
+				{
+					"name": "POST /auth/register — duplicate email (409)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 409', () => pm.response.to.have.status(409));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{registeredEmail}}\",\n  \"password\": \"Demo12345!\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/register",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "register"]
+						}
+					}
+				},
+				{
+					"name": "POST /auth/login — wrong password (401)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 401', () => pm.response.to.have.status(401));",
+									"pm.collectionVariables.set('authErrorMessage', pm.response.json().title);"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{registeredEmail}}\",\n  \"password\": \"WrongPassword1!\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "login"]
+						}
+					}
+				},
+				{
+					"name": "POST /auth/login — unknown email, same message (401)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 401', () => pm.response.to.have.status(401));",
+									"pm.test('same message as wrong password (no account enumeration)', () => {",
+									"    pm.expect(pm.response.json().title).to.eql(pm.collectionVariables.get('authErrorMessage'));",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"ghost-{{$timestamp}}@tech-service.local\",\n  \"password\": \"WrongPassword1!\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "login"]
+						}
+					}
+				},
+				{
+					"name": "POST /auth/login — admin (200)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 200', () => pm.response.to.have.status(200));",
+									"pm.test('returns access token and user', () => {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json.accessToken).to.be.a('string');",
+									"    pm.expect(json.user.role).to.eql('admin');",
+									"    pm.collectionVariables.set('accessToken', json.accessToken);",
+									"});",
+									"pm.test('sets refresh cookie', () => {",
+									"    pm.expect(pm.cookies.has('refreshToken')).to.be.true;",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{authEmail}}\",\n  \"password\": \"{{authPassword}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "login"]
+						}
+					}
+				},
+				{
+					"name": "GET /auth/me (200)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 200', () => pm.response.to.have.status(200));",
+									"pm.test('returns current user', () => {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json.email).to.eql(pm.collectionVariables.get('authEmail'));",
+									"    pm.expect(json.role).to.eql('admin');",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/me",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "me"]
+						}
+					}
+				},
+				{
+					"name": "POST /auth/refresh — new access token (200)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 200', () => pm.response.to.have.status(200));",
+									"pm.test('returns a fresh access token', () => {",
+									"    const json = pm.response.json();",
+									"    pm.expect(json.accessToken).to.be.a('string');",
+									"    pm.collectionVariables.set('accessToken', json.accessToken);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/auth/refresh",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "refresh"]
+						}
+					}
+				},
+				{
+					"name": "POST /auth/logout (204)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 204', () => pm.response.to.have.status(204));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/logout",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "logout"]
+						}
+					}
+				},
+				{
+					"name": "POST /auth/refresh — revoked after logout (401)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 401', () => pm.response.to.have.status(401));"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/auth/refresh",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "refresh"]
+						}
+					}
+				},
+				{
+					"name": "POST /auth/login — re-authenticate for the rest of the collection (200)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('status 200', () => pm.response.to.have.status(200));",
+									"pm.test('sets a fresh access token for subsequent folders', () => {",
+									"    pm.collectionVariables.set('accessToken', pm.response.json().accessToken);",
+									"});"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"email\": \"{{authEmail}}\",\n  \"password\": \"{{authPassword}}\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["auth", "login"]
+						}
+					}
+				}
+			]
+		},
+		{
 			"name": "Health",
 			"item": [
 				{
-					"name": "GET /health",
+					"name": "GET /health/live",
 					"request": {
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{baseUrl}}/health",
+							"raw": "{{baseUrl}}/health/live",
 							"host": ["{{baseUrl}}"],
-							"path": ["health"]
+							"path": ["health", "live"]
 						}
 					},
 					"event": [
@@ -98,13 +444,13 @@
 								"value": "application/json"
 							},
 							{
-								"key": "X-API-Key",
-								"value": "{{apiKey}}"
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
 							}
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"name\": \"Турбина №1\",\n  \"type\": \"turbine\",\n  \"serialNumber\": \"WT-POSTMAN-0001\",\n  \"location\": { \"lat\": 55.75, \"lon\": 37.62 },\n  \"status\": \"operational\",\n  \"installedAt\": \"2024-01-01T00:00:00.000Z\"\n}"
+							"raw": "{\n  \"name\": \"Турбина №1\",\n  \"type\": \"turbine\",\n  \"serialNumber\": \"WT-POSTMAN-0001\",\n  \"status\": \"operational\",\n  \"installedAt\": \"2024-01-01\"\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/equipment",
@@ -140,13 +486,13 @@
 								"value": "application/json"
 							},
 							{
-								"key": "X-API-Key",
-								"value": "{{apiKey}}"
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
 							}
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"name\": \"Турбина-дубликат\",\n  \"type\": \"turbine\",\n  \"serialNumber\": \"WT-POSTMAN-0001\",\n  \"location\": { \"lat\": 55.75, \"lon\": 37.62 },\n  \"status\": \"operational\",\n  \"installedAt\": \"2024-01-01T00:00:00.000Z\"\n}"
+							"raw": "{\n  \"name\": \"Турбина-дубликат\",\n  \"type\": \"turbine\",\n  \"serialNumber\": \"WT-POSTMAN-0001\",\n  \"status\": \"operational\",\n  \"installedAt\": \"2024-01-01\"\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/equipment",
@@ -180,13 +526,13 @@
 								"value": "application/json"
 							},
 							{
-								"key": "X-API-Key",
-								"value": "{{apiKey}}"
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
 							}
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"name\": \"АБ\",\n  \"type\": \"turbine\",\n  \"serialNumber\": \"WT-POSTMAN-0002\",\n  \"location\": { \"lat\": 55.75, \"lon\": 37.62 },\n  \"status\": \"operational\",\n  \"installedAt\": \"2024-01-01T00:00:00.000Z\"\n}"
+							"raw": "{\n  \"name\": \"АБ\",\n  \"type\": \"turbine\",\n  \"serialNumber\": \"WT-POSTMAN-0002\",\n  \"status\": \"operational\",\n  \"installedAt\": \"2024-01-01\"\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/equipment",
@@ -211,7 +557,7 @@
 					]
 				},
 				{
-					"name": "POST /equipment — missing API key (401)",
+					"name": "POST /equipment — missing token (401)",
 					"request": {
 						"method": "POST",
 						"header": [
@@ -222,7 +568,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"name\": \"Турбина без ключа\",\n  \"type\": \"turbine\",\n  \"serialNumber\": \"WT-POSTMAN-0003\",\n  \"location\": { \"lat\": 55.75, \"lon\": 37.62 },\n  \"status\": \"operational\",\n  \"installedAt\": \"2024-01-01T00:00:00.000Z\"\n}"
+							"raw": "{\n  \"name\": \"Турбина без ключа\",\n  \"type\": \"turbine\",\n  \"serialNumber\": \"WT-POSTMAN-0003\",\n  \"status\": \"operational\",\n  \"installedAt\": \"2024-01-01\"\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/equipment",
@@ -245,7 +591,12 @@
 					"name": "GET /equipment — list with pagination",
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
 						"url": {
 							"raw": "{{baseUrl}}/equipment?page=1&limit=20",
 							"host": ["{{baseUrl}}"],
@@ -282,7 +633,12 @@
 					"name": "GET /equipment — filtered by status",
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
 						"url": {
 							"raw": "{{baseUrl}}/equipment?status=operational",
 							"host": ["{{baseUrl}}"],
@@ -314,7 +670,12 @@
 					"name": "GET /equipment/:id — card",
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
 						"url": {
 							"raw": "{{baseUrl}}/equipment/{{equipmentId}}",
 							"host": ["{{baseUrl}}"],
@@ -340,7 +701,12 @@
 					"name": "GET /equipment/:id — unknown id (404)",
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
 						"url": {
 							"raw": "{{baseUrl}}/equipment/00000000-0000-0000-0000-000000000000",
 							"host": ["{{baseUrl}}"],
@@ -366,7 +732,12 @@
 					"name": "GET /equipment/:id — malformed id (422)",
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
 						"url": {
 							"raw": "{{baseUrl}}/equipment/unknown-id",
 							"host": ["{{baseUrl}}"],
@@ -399,8 +770,8 @@
 								"value": "application/json"
 							},
 							{
-								"key": "X-API-Key",
-								"value": "{{apiKey}}"
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
 							}
 						],
 						"body": {
@@ -439,8 +810,8 @@
 								"value": "application/json"
 							},
 							{
-								"key": "X-API-Key",
-								"value": "{{apiKey}}"
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
 							}
 						],
 						"body": {
@@ -474,8 +845,8 @@
 								"value": "application/json"
 							},
 							{
-								"key": "X-API-Key",
-								"value": "{{apiKey}}"
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
 							}
 						],
 						"body": {
@@ -503,7 +874,12 @@
 					"name": "GET /equipment/:id/weather",
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
 						"url": {
 							"raw": "{{baseUrl}}/equipment/{{equipmentId}}/weather",
 							"host": ["{{baseUrl}}"],
@@ -543,13 +919,13 @@
 										"value": "application/json"
 									},
 									{
-										"key": "X-API-Key",
-										"value": "{{apiKey}}"
+										"key": "Authorization",
+										"value": "Bearer {{accessToken}}"
 									}
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"name\": \"Оборудование под удаление\",\n  \"type\": \"sensor\",\n  \"serialNumber\": \"WT-POSTMAN-DEL-0001\",\n  \"location\": { \"lat\": 50, \"lon\": 30 },\n  \"status\": \"operational\",\n  \"installedAt\": \"2024-01-01T00:00:00.000Z\"\n}"
+									"raw": "{\n  \"name\": \"Оборудование под удаление\",\n  \"type\": \"sensor\",\n  \"serialNumber\": \"WT-POSTMAN-DEL-0001\",\n  \"status\": \"operational\",\n  \"installedAt\": \"2024-01-01\"\n}"
 								},
 								"url": {
 									"raw": "{{baseUrl}}/equipment",
@@ -579,13 +955,13 @@
 										"value": "application/json"
 									},
 									{
-										"key": "X-API-Key",
-										"value": "{{apiKey}}"
+										"key": "Authorization",
+										"value": "Bearer {{accessToken}}"
 									}
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"equipmentId\": \"{{deletionEquipmentId}}\",\n  \"title\": \"Проверить перед списанием\",\n  \"priority\": \"low\"\n}"
+									"raw": "{\n  \"equipmentId\": \"{{deletionEquipmentId}}\",\n  \"title\": \"Проверить перед списанием\",\n  \"priority\": \"low\",\n  \"author\": \"Тест\"\n}"
 								},
 								"url": {
 									"raw": "{{baseUrl}}/requests",
@@ -611,8 +987,8 @@
 								"method": "DELETE",
 								"header": [
 									{
-										"key": "X-API-Key",
-										"value": "{{apiKey}}"
+										"key": "Authorization",
+										"value": "Bearer {{accessToken}}"
 									}
 								],
 								"url": {
@@ -642,13 +1018,13 @@
 										"value": "application/json"
 									},
 									{
-										"key": "X-API-Key",
-										"value": "{{apiKey}}"
+										"key": "Authorization",
+										"value": "Bearer {{accessToken}}"
 									}
 								],
 								"body": {
 									"mode": "raw",
-									"raw": "{\n  \"status\": \"rejected\"\n}"
+									"raw": "{\n  \"status\": \"rejected\",\n  \"author\": \"Тест\"\n}"
 								},
 								"url": {
 									"raw": "{{baseUrl}}/requests/{{deletionRequestId}}/status",
@@ -673,8 +1049,8 @@
 								"method": "DELETE",
 								"header": [
 									{
-										"key": "X-API-Key",
-										"value": "{{apiKey}}"
+										"key": "Authorization",
+										"value": "Bearer {{accessToken}}"
 									}
 								],
 								"url": {
@@ -711,13 +1087,13 @@
 								"value": "application/json"
 							},
 							{
-								"key": "X-API-Key",
-								"value": "{{apiKey}}"
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
 							}
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"equipmentId\": \"{{equipmentId}}\",\n  \"title\": \"Проверить датчик вибрации\",\n  \"description\": \"Показания нестабильны последние сутки\",\n  \"priority\": \"medium\"\n}"
+							"raw": "{\n  \"equipmentId\": \"{{equipmentId}}\",\n  \"title\": \"Проверить датчик вибрации\",\n  \"description\": \"Показания нестабильны последние сутки\",\n  \"priority\": \"medium\",\n  \"author\": \"Тест\"\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/requests",
@@ -751,13 +1127,13 @@
 								"value": "application/json"
 							},
 							{
-								"key": "X-API-Key",
-								"value": "{{apiKey}}"
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
 							}
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"equipmentId\": \"unknown-equipment-id\",\n  \"title\": \"Проверить оборудование\",\n  \"priority\": \"low\"\n}"
+							"raw": "{\n  \"equipmentId\": \"00000000-0000-0000-0000-000000000000\",\n  \"title\": \"Проверить оборудование\",\n  \"priority\": \"low\",\n  \"author\": \"Тест\"\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/requests",
@@ -786,13 +1162,13 @@
 								"value": "application/json"
 							},
 							{
-								"key": "X-API-Key",
-								"value": "{{apiKey}}"
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
 							}
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"requests\": [\n    { \"equipmentId\": \"{{equipmentId}}\", \"title\": \"Проверить крепление лопасти\", \"priority\": \"high\" },\n    { \"equipmentId\": \"{{equipmentId}}\", \"title\": \"АБ\", \"priority\": \"low\" },\n    { \"equipmentId\": \"00000000-0000-0000-0000-000000000000\", \"title\": \"Оборудование не существует\", \"priority\": \"low\" }\n  ]\n}"
+							"raw": "{\n  \"requests\": [\n    { \"equipmentId\": \"{{equipmentId}}\", \"title\": \"Проверить крепление лопасти\", \"priority\": \"high\", \"author\": \"Тест\" },\n    { \"equipmentId\": \"{{equipmentId}}\", \"title\": \"АБ\", \"priority\": \"low\", \"author\": \"Тест\" },\n    { \"equipmentId\": \"00000000-0000-0000-0000-000000000000\", \"title\": \"Оборудование не существует\", \"priority\": \"low\", \"author\": \"Тест\" }\n  ]\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/requests/bulk",
@@ -829,13 +1205,13 @@
 								"value": "application/json"
 							},
 							{
-								"key": "X-API-Key",
-								"value": "{{apiKey}}"
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
 							}
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"status\": \"rejected\"\n}"
+							"raw": "{\n  \"status\": \"rejected\",\n  \"author\": \"Тест\"\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/requests/{{bulkCreatedRequestId}}/status",
@@ -864,8 +1240,8 @@
 								"value": "application/json"
 							},
 							{
-								"key": "X-API-Key",
-								"value": "{{apiKey}}"
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
 							}
 						],
 						"body": {
@@ -890,7 +1266,7 @@
 					]
 				},
 				{
-					"name": "POST /requests/bulk — missing API key (401)",
+					"name": "POST /requests/bulk — missing token (401)",
 					"request": {
 						"method": "POST",
 						"header": [
@@ -901,7 +1277,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"requests\": [\n    { \"equipmentId\": \"{{equipmentId}}\", \"title\": \"Проверить крепление лопасти\", \"priority\": \"high\" }\n  ]\n}"
+							"raw": "{\n  \"requests\": [\n    { \"equipmentId\": \"{{equipmentId}}\", \"title\": \"Проверить крепление лопасти\", \"priority\": \"high\", \"author\": \"Тест\" }\n  ]\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/requests/bulk",
@@ -930,13 +1306,13 @@
 								"value": "application/json"
 							},
 							{
-								"key": "X-API-Key",
-								"value": "{{apiKey}}"
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
 							}
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"equipmentId\": \"{{equipmentId}}\",\n  \"title\": \"кор\",\n  \"priority\": \"low\"\n}"
+							"raw": "{\n  \"equipmentId\": \"{{equipmentId}}\",\n  \"title\": \"кор\",\n  \"priority\": \"low\",\n  \"author\": \"Тест\"\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/requests",
@@ -962,7 +1338,12 @@
 					"name": "GET /requests — list with pagination",
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
 						"url": {
 							"raw": "{{baseUrl}}/requests?page=1&limit=20",
 							"host": ["{{baseUrl}}"],
@@ -998,7 +1379,12 @@
 					"name": "GET /requests — filtered by priority + equipmentId",
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
 						"url": {
 							"raw": "{{baseUrl}}/requests?priority=medium&equipmentId={{equipmentId}}",
 							"host": ["{{baseUrl}}"],
@@ -1030,7 +1416,12 @@
 					"name": "GET /requests/:id — card",
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
 						"url": {
 							"raw": "{{baseUrl}}/requests/{{requestId}}",
 							"host": ["{{baseUrl}}"],
@@ -1055,7 +1446,12 @@
 					"name": "GET /requests/:id — unknown id (404)",
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
 						"url": {
 							"raw": "{{baseUrl}}/requests/00000000-0000-0000-0000-000000000000",
 							"host": ["{{baseUrl}}"],
@@ -1077,7 +1473,12 @@
 					"name": "GET /requests/:id — malformed id (422)",
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
 						"url": {
 							"raw": "{{baseUrl}}/requests/unknown-id",
 							"host": ["{{baseUrl}}"],
@@ -1105,8 +1506,8 @@
 								"value": "application/json"
 							},
 							{
-								"key": "X-API-Key",
-								"value": "{{apiKey}}"
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
 							}
 						],
 						"body": {
@@ -1145,13 +1546,13 @@
 								"value": "application/json"
 							},
 							{
-								"key": "X-API-Key",
-								"value": "{{apiKey}}"
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
 							}
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"status\": \"in_progress\"\n}"
+							"raw": "{\n  \"status\": \"in_progress\",\n  \"author\": \"Тест\"\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/requests/{{requestId}}/status",
@@ -1181,13 +1582,13 @@
 								"value": "application/json"
 							},
 							{
-								"key": "X-API-Key",
-								"value": "{{apiKey}}"
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
 							}
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"status\": \"new\"\n}"
+							"raw": "{\n  \"status\": \"new\",\n  \"author\": \"Тест\"\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/requests/{{requestId}}/status",
@@ -1210,7 +1611,12 @@
 					"name": "GET /equipment/:id/requests — nested resource",
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
 						"url": {
 							"raw": "{{baseUrl}}/equipment/{{equipmentId}}/requests",
 							"host": ["{{baseUrl}}"],
@@ -1242,13 +1648,13 @@
 								"value": "application/json"
 							},
 							{
-								"key": "X-API-Key",
-								"value": "{{apiKey}}"
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
 							}
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"status\": \"done\"\n}"
+							"raw": "{\n  \"status\": \"done\",\n  \"author\": \"Тест\"\n}"
 						},
 						"url": {
 							"raw": "{{baseUrl}}/requests/{{requestId}}/status",
@@ -1273,8 +1679,8 @@
 						"method": "DELETE",
 						"header": [
 							{
-								"key": "X-API-Key",
-								"value": "{{apiKey}}"
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
 							}
 						],
 						"url": {
@@ -1300,8 +1706,8 @@
 						"method": "DELETE",
 						"header": [
 							{
-								"key": "X-API-Key",
-								"value": "{{apiKey}}"
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
 							}
 						],
 						"url": {
@@ -1327,8 +1733,8 @@
 						"method": "DELETE",
 						"header": [
 							{
-								"key": "X-API-Key",
-								"value": "{{apiKey}}"
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
 							}
 						],
 						"url": {
@@ -1349,7 +1755,7 @@
 					]
 				},
 				{
-					"name": "DELETE /requests/:id — missing API key (401)",
+					"name": "DELETE /requests/:id — missing token (401)",
 					"request": {
 						"method": "DELETE",
 						"header": [],
@@ -1376,8 +1782,8 @@
 						"method": "DELETE",
 						"header": [
 							{
-								"key": "X-API-Key",
-								"value": "{{apiKey}}"
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
 							}
 						],
 						"url": {
@@ -1401,7 +1807,12 @@
 					"name": "GET /requests/:id/history — status history",
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
 						"url": {
 							"raw": "{{baseUrl}}/requests/{{requestId}}/history",
 							"host": ["{{baseUrl}}"],
@@ -1430,8 +1841,8 @@
 								"value": "application/json"
 							},
 							{
-								"key": "X-API-Key",
-								"value": "{{apiKey}}"
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
 							}
 						],
 						"url": {
@@ -1465,8 +1876,8 @@
 								"value": "application/json"
 							},
 							{
-								"key": "X-API-Key",
-								"value": "{{apiKey}}"
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
 							}
 						],
 						"url": {
@@ -1500,8 +1911,8 @@
 								"value": "application/json"
 							},
 							{
-								"key": "X-API-Key",
-								"value": "{{apiKey}}"
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
 							}
 						],
 						"url": {
@@ -1535,8 +1946,8 @@
 								"value": "application/json"
 							},
 							{
-								"key": "X-API-Key",
-								"value": "{{apiKey}}"
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
 							}
 						],
 						"url": {
@@ -1566,8 +1977,8 @@
 						"method": "DELETE",
 						"header": [
 							{
-								"key": "X-API-Key",
-								"value": "{{apiKey}}"
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
 							}
 						],
 						"url": {
@@ -1598,8 +2009,8 @@
 						"method": "DELETE",
 						"header": [
 							{
-								"key": "X-API-Key",
-								"value": "{{apiKey}}"
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
 							}
 						],
 						"url": {
@@ -1636,9 +2047,9 @@
 						"header": [],
 						"description": "Намеренно превышает RATE_LIMIT_MAX для /api (по умолчанию 100 запросов / 60с в .env). Скрипт повторяет сам себя (postman.setNextRequest), пока не получит 429, затем останавливается. ВАЖНО: после срабатывания сервер будет отвечать 429 на все запросы к /api до конца текущего окна — поэтому папка стоит последней в коллекции; подождите ~RATE_LIMIT_WINDOW_MS перед повторным прогоном всей коллекции.",
 						"url": {
-							"raw": "{{baseUrl}}/health",
+							"raw": "{{baseUrl}}/health/live",
 							"host": ["{{baseUrl}}"],
-							"path": ["health"]
+							"path": ["health", "live"]
 						}
 					},
 					"event": [
@@ -1686,7 +2097,12 @@
 					"name": "GET /sites/:id/summary — status/priority counts",
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
 						"url": {
 							"raw": "{{baseUrl}}/sites/{{siteId}}/summary",
 							"host": ["{{baseUrl}}"],
@@ -1713,7 +2129,12 @@
 					"name": "GET /sites/:id/summary — unknown id (404)",
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
 						"url": {
 							"raw": "{{baseUrl}}/sites/00000000-0000-0000-0000-000000000000/summary",
 							"host": ["{{baseUrl}}"],
@@ -1744,7 +2165,12 @@
 					"name": "GET /reports/equipment-load — default",
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
 						"url": {
 							"raw": "{{baseUrl}}/reports/equipment-load",
 							"host": ["{{baseUrl}}"],
@@ -1767,7 +2193,12 @@
 					"name": "GET /reports/equipment-load — filtered by minRequests",
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
 						"url": {
 							"raw": "{{baseUrl}}/reports/equipment-load?minRequests=1",
 							"host": ["{{baseUrl}}"],
@@ -1795,7 +2226,12 @@
 					"name": "GET /reports/equipment-load — invalid minRequests (400)",
 					"request": {
 						"method": "GET",
-						"header": [],
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{accessToken}}"
+							}
+						],
 						"url": {
 							"raw": "{{baseUrl}}/reports/equipment-load?minRequests=-1",
 							"host": ["{{baseUrl}}"],
