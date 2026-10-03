@@ -2,35 +2,42 @@ import request from 'supertest';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { MaintenanceRequest } from '../../models/maintenance-request.model.ts';
 import app from '../app.ts';
+import { bearer, makeToken } from '../testUtils/authFixtures.ts';
 import {
 	createTestSite,
 	createTestTechnician,
 	resetDb,
 } from '../testUtils/dbFixtures.ts';
 
-const API_KEY = 'dev-api-key';
+const adminToken = makeToken('admin');
 
 beforeEach(async () => {
 	await resetDb();
 });
 
 const createEquipmentFor = (siteId: string, serialNumber: string) =>
-	request(app).post('/api/equipment').set('X-API-Key', API_KEY).send({
-		siteId,
-		name: 'Турбина',
-		type: 'turbine',
-		serialNumber,
-		status: 'operational',
-		installedAt: '2024-06-01',
-	});
+	request(app)
+		.post('/api/equipment')
+		.set('Authorization', bearer(adminToken))
+		.send({
+			siteId,
+			name: 'Турбина',
+			type: 'turbine',
+			serialNumber,
+			status: 'operational',
+			installedAt: '2024-06-01',
+		});
 
 const createRequestFor = (equipmentId: string, priority: string) =>
-	request(app).post('/api/requests').set('X-API-Key', API_KEY).send({
-		equipmentId,
-		title: 'Плановое обслуживание',
-		priority,
-		author: 'Тест',
-	});
+	request(app)
+		.post('/api/requests')
+		.set('Authorization', bearer(adminToken))
+		.send({
+			equipmentId,
+			title: 'Плановое обслуживание',
+			priority,
+			author: 'Тест',
+		});
 
 describe('GET /api/reports/equipment-load', () => {
 	it('returns a row per equipment with counts and planned hours', async () => {
@@ -41,20 +48,22 @@ describe('GET /api/reports/equipment-load', () => {
 		const closedRequest = await createRequestFor(equipment.body.id, 'high');
 		await request(app)
 			.post(`/api/requests/${closedRequest.body.id}/assignees`)
-			.set('X-API-Key', API_KEY)
+			.set('Authorization', bearer(adminToken))
 			.send([{ technicianId: technician.id, role: 'lead', hours: 6 }]);
 		await request(app)
 			.patch(`/api/requests/${closedRequest.body.id}/status`)
-			.set('X-API-Key', API_KEY)
+			.set('Authorization', bearer(adminToken))
 			.send({ status: 'in_progress', author: 'Тест' });
 		await request(app)
 			.patch(`/api/requests/${closedRequest.body.id}/status`)
-			.set('X-API-Key', API_KEY)
+			.set('Authorization', bearer(adminToken))
 			.send({ status: 'done', author: 'Тест' });
 
 		await createRequestFor(equipment.body.id, 'low');
 
-		const response = await request(app).get('/api/reports/equipment-load');
+		const response = await request(app)
+			.get('/api/reports/equipment-load')
+			.set('Authorization', bearer(adminToken));
 
 		expect(response.status).toBe(200);
 		const row = response.body.find(
@@ -75,6 +84,7 @@ describe('GET /api/reports/equipment-load', () => {
 
 		const response = await request(app)
 			.get('/api/reports/equipment-load')
+			.set('Authorization', bearer(adminToken))
 			.query({ minRequests: 2 });
 
 		expect(response.status).toBe(200);
@@ -102,6 +112,7 @@ describe('GET /api/reports/equipment-load', () => {
 
 		const response = await request(app)
 			.get('/api/reports/equipment-load')
+			.set('Authorization', bearer(adminToken))
 			.query({ dateFrom: '2024-01-01T00:00:00.000Z' });
 
 		expect(response.status).toBe(200);
@@ -114,8 +125,15 @@ describe('GET /api/reports/equipment-load', () => {
 	it('returns 400 for an invalid minRequests', async () => {
 		const response = await request(app)
 			.get('/api/reports/equipment-load')
+			.set('Authorization', bearer(adminToken))
 			.query({ minRequests: -1 });
 
 		expect(response.status).toBe(400);
+	});
+
+	it('returns 401 without a token', async () => {
+		const response = await request(app).get('/api/reports/equipment-load');
+
+		expect(response.status).toBe(401);
 	});
 });

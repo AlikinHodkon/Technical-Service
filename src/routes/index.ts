@@ -1,3 +1,4 @@
+export { default as authRouter } from './auth.route.ts';
 export { default as docsRouter } from './docs.route.ts';
 export { default as equipmentRouter } from './equipment.route.ts';
 export { default as healthRouter } from './health.route.ts';

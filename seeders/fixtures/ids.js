@@ -10,6 +10,7 @@ const TAG = {
 	equipment: '00000003',
 	request: '00000004',
 	history: '00000005',
+	user: '00000006',
 };
 
 module.exports = { uuid, TAG };

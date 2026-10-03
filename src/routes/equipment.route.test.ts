@@ -1,9 +1,11 @@
 import request from 'supertest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import app from '../app.ts';
+import { bearer, makeToken } from '../testUtils/authFixtures.ts';
 import { createTestSite, resetDb } from '../testUtils/dbFixtures.ts';
 
-const API_KEY = 'dev-api-key';
+const adminToken = makeToken('admin');
+const viewerToken = makeToken('viewer');
 
 const baseEquipment = (siteId: string) => ({
 	siteId,
@@ -18,7 +20,7 @@ const createEquipment = async (overrides: Record<string, unknown> = {}) => {
 	const site = await createTestSite();
 	return request(app)
 		.post('/api/equipment')
-		.set('X-API-Key', API_KEY)
+		.set('Authorization', bearer(adminToken))
 		.send({ ...baseEquipment(site.id), ...overrides });
 };
 
@@ -35,7 +37,7 @@ describe('POST /api/equipment', () => {
 		const site = await createTestSite();
 		const response = await request(app)
 			.post('/api/equipment')
-			.set('X-API-Key', API_KEY)
+			.set('Authorization', bearer(adminToken))
 			.send(baseEquipment(site.id));
 
 		expect(response.status).toBe(201);
@@ -47,11 +49,11 @@ describe('POST /api/equipment', () => {
 		const site = await createTestSite();
 		await request(app)
 			.post('/api/equipment')
-			.set('X-API-Key', API_KEY)
+			.set('Authorization', bearer(adminToken))
 			.send(baseEquipment(site.id));
 		const response = await request(app)
 			.post('/api/equipment')
-			.set('X-API-Key', API_KEY)
+			.set('Authorization', bearer(adminToken))
 			.send(baseEquipment(site.id));
 
 		expect(response.status).toBe(409);
@@ -66,7 +68,7 @@ describe('POST /api/equipment', () => {
 		expect(response.body.errors[0].field).toBe('installedAt');
 	});
 
-	it('returns 401 without an API key', async () => {
+	it('returns 401 without a token', async () => {
 		const site = await createTestSite();
 		const response = await request(app)
 			.post('/api/equipment')
@@ -75,14 +77,24 @@ describe('POST /api/equipment', () => {
 		expect(response.status).toBe(401);
 	});
 
-	it('returns 401 with a wrong API key', async () => {
+	it('returns 401 with an invalid token', async () => {
 		const site = await createTestSite();
 		const response = await request(app)
 			.post('/api/equipment')
-			.set('X-API-Key', 'wrong-key')
+			.set('Authorization', 'Bearer invalid-token')
 			.send(baseEquipment(site.id));
 
 		expect(response.status).toBe(401);
+	});
+
+	it('returns 403 for a non-admin role', async () => {
+		const site = await createTestSite();
+		const response = await request(app)
+			.post('/api/equipment')
+			.set('Authorization', bearer(viewerToken))
+			.send(baseEquipment(site.id));
+
+		expect(response.status).toBe(403);
 	});
 });
 
@@ -97,7 +109,9 @@ describe('GET /api/equipment', () => {
 			status: 'maintenance',
 		});
 
-		const response = await request(app).get('/api/equipment');
+		const response = await request(app)
+			.get('/api/equipment')
+			.set('Authorization', bearer(adminToken));
 
 		expect(response.status).toBe(200);
 		expect(response.body.total).toBe(2);
@@ -110,6 +124,7 @@ describe('GET /api/equipment', () => {
 
 		const response = await request(app)
 			.get('/api/equipment')
+			.set('Authorization', bearer(adminToken))
 			.query({ limit: 'xyz' });
 
 		expect(response.status).toBe(400);
@@ -127,6 +142,7 @@ describe('GET /api/equipment', () => {
 
 		const response = await request(app)
 			.get('/api/equipment')
+			.set('Authorization', bearer(adminToken))
 			.query({ status: 'maintenance' });
 
 		expect(response.status).toBe(200);
@@ -139,9 +155,9 @@ describe('GET /api/equipment/:id', () => {
 	it('returns the equipment card', async () => {
 		const created = await createEquipment();
 
-		const response = await request(app).get(
-			`/api/equipment/${created.body.id}`,
-		);
+		const response = await request(app)
+			.get(`/api/equipment/${created.body.id}`)
+			.set('Authorization', bearer(adminToken));
 
 		expect(response.status).toBe(200);
 		expect(response.body.id).toBe(created.body.id);
@@ -149,15 +165,17 @@ describe('GET /api/equipment/:id', () => {
 	});
 
 	it('returns 404 for unknown id', async () => {
-		const response = await request(app).get(
-			`/api/equipment/${crypto.randomUUID()}`,
-		);
+		const response = await request(app)
+			.get(`/api/equipment/${crypto.randomUUID()}`)
+			.set('Authorization', bearer(adminToken));
 
 		expect(response.status).toBe(404);
 	});
 
 	it('returns 422 for a malformed id', async () => {
-		const response = await request(app).get('/api/equipment/unknown-id');
+		const response = await request(app)
+			.get('/api/equipment/unknown-id')
+			.set('Authorization', bearer(adminToken));
 
 		expect(response.status).toBe(422);
 	});
@@ -169,7 +187,7 @@ describe('PATCH /api/equipment/:id', () => {
 
 		const response = await request(app)
 			.patch(`/api/equipment/${created.body.id}`)
-			.set('X-API-Key', API_KEY)
+			.set('Authorization', bearer(adminToken))
 			.send({ status: 'maintenance' });
 
 		expect(response.status).toBe(200);
@@ -180,7 +198,7 @@ describe('PATCH /api/equipment/:id', () => {
 	it('returns 404 for unknown id', async () => {
 		const response = await request(app)
 			.patch(`/api/equipment/${crypto.randomUUID()}`)
-			.set('X-API-Key', API_KEY)
+			.set('Authorization', bearer(adminToken))
 			.send({ status: 'maintenance' });
 
 		expect(response.status).toBe(404);
@@ -189,7 +207,7 @@ describe('PATCH /api/equipment/:id', () => {
 	it('returns 422 for a malformed id', async () => {
 		const response = await request(app)
 			.patch('/api/equipment/unknown-id')
-			.set('X-API-Key', API_KEY)
+			.set('Authorization', bearer(adminToken))
 			.send({ status: 'maintenance' });
 
 		expect(response.status).toBe(422);
@@ -199,22 +217,22 @@ describe('PATCH /api/equipment/:id', () => {
 		const site = await createTestSite();
 		await request(app)
 			.post('/api/equipment')
-			.set('X-API-Key', API_KEY)
+			.set('Authorization', bearer(adminToken))
 			.send({ ...baseEquipment(site.id), serialNumber: 'WT-2024-0001' });
 		const second = await request(app)
 			.post('/api/equipment')
-			.set('X-API-Key', API_KEY)
+			.set('Authorization', bearer(adminToken))
 			.send({ ...baseEquipment(site.id), serialNumber: 'WT-2024-0002' });
 
 		const response = await request(app)
 			.patch(`/api/equipment/${second.body.id}`)
-			.set('X-API-Key', API_KEY)
+			.set('Authorization', bearer(adminToken))
 			.send({ serialNumber: 'WT-2024-0001' });
 
 		expect(response.status).toBe(409);
 	});
 
-	it('returns 401 without an API key', async () => {
+	it('returns 401 without a token', async () => {
 		const created = await createEquipment();
 
 		const response = await request(app)
@@ -231,19 +249,19 @@ describe('DELETE /api/equipment/:id', () => {
 
 		const response = await request(app)
 			.delete(`/api/equipment/${created.body.id}`)
-			.set('X-API-Key', API_KEY);
+			.set('Authorization', bearer(adminToken));
 		expect(response.status).toBe(204);
 
-		const getResponse = await request(app).get(
-			`/api/equipment/${created.body.id}`,
-		);
+		const getResponse = await request(app)
+			.get(`/api/equipment/${created.body.id}`)
+			.set('Authorization', bearer(adminToken));
 		expect(getResponse.status).toBe(404);
 	});
 
 	it('returns 404 for unknown id', async () => {
 		const response = await request(app)
 			.delete(`/api/equipment/${crypto.randomUUID()}`)
-			.set('X-API-Key', API_KEY);
+			.set('Authorization', bearer(adminToken));
 
 		expect(response.status).toBe(404);
 	});
@@ -251,28 +269,31 @@ describe('DELETE /api/equipment/:id', () => {
 	it('returns 422 for a malformed id', async () => {
 		const response = await request(app)
 			.delete('/api/equipment/unknown-id')
-			.set('X-API-Key', API_KEY);
+			.set('Authorization', bearer(adminToken));
 
 		expect(response.status).toBe(422);
 	});
 
 	it('returns 409 when equipment has open requests', async () => {
 		const created = await createEquipment();
-		await request(app).post('/api/requests').set('X-API-Key', API_KEY).send({
-			equipmentId: created.body.id,
-			title: 'Заменить датчик',
-			priority: 'medium',
-			author: 'Тест',
-		});
+		await request(app)
+			.post('/api/requests')
+			.set('Authorization', bearer(adminToken))
+			.send({
+				equipmentId: created.body.id,
+				title: 'Заменить датчик',
+				priority: 'medium',
+				author: 'Тест',
+			});
 
 		const response = await request(app)
 			.delete(`/api/equipment/${created.body.id}`)
-			.set('X-API-Key', API_KEY);
+			.set('Authorization', bearer(adminToken));
 
 		expect(response.status).toBe(409);
 	});
 
-	it('returns 401 without an API key', async () => {
+	it('returns 401 without a token', async () => {
 		const created = await createEquipment();
 
 		const response = await request(app).delete(
@@ -289,23 +310,26 @@ describe('GET /api/equipment/:id/requests', () => {
 		const equipmentB = await createEquipment({ serialNumber: 'WT-2024-0002' });
 		const reqA = await request(app)
 			.post('/api/requests')
-			.set('X-API-Key', API_KEY)
+			.set('Authorization', bearer(adminToken))
 			.send({
 				equipmentId: equipmentA.body.id,
 				title: 'Заменить датчик',
 				priority: 'medium',
 				author: 'Тест',
 			});
-		await request(app).post('/api/requests').set('X-API-Key', API_KEY).send({
-			equipmentId: equipmentB.body.id,
-			title: 'Проверить инвертор',
-			priority: 'low',
-			author: 'Тест',
-		});
+		await request(app)
+			.post('/api/requests')
+			.set('Authorization', bearer(adminToken))
+			.send({
+				equipmentId: equipmentB.body.id,
+				title: 'Проверить инвертор',
+				priority: 'low',
+				author: 'Тест',
+			});
 
-		const response = await request(app).get(
-			`/api/equipment/${equipmentA.body.id}/requests`,
-		);
+		const response = await request(app)
+			.get(`/api/equipment/${equipmentA.body.id}/requests`)
+			.set('Authorization', bearer(adminToken));
 
 		expect(response.status).toBe(200);
 		expect(response.body.total).toBe(1);
@@ -313,17 +337,17 @@ describe('GET /api/equipment/:id/requests', () => {
 	});
 
 	it('returns 404 for unknown equipment id', async () => {
-		const response = await request(app).get(
-			`/api/equipment/${crypto.randomUUID()}/requests`,
-		);
+		const response = await request(app)
+			.get(`/api/equipment/${crypto.randomUUID()}/requests`)
+			.set('Authorization', bearer(adminToken));
 
 		expect(response.status).toBe(404);
 	});
 
 	it('returns 422 for a malformed equipment id', async () => {
-		const response = await request(app).get(
-			'/api/equipment/unknown-id/requests',
-		);
+		const response = await request(app)
+			.get('/api/equipment/unknown-id/requests')
+			.set('Authorization', bearer(adminToken));
 
 		expect(response.status).toBe(422);
 	});
@@ -360,9 +384,9 @@ describe('GET /api/equipment/:id/weather', () => {
 			}),
 		);
 
-		const response = await request(app).get(
-			`/api/equipment/${equipment.body.id}/weather`,
-		);
+		const response = await request(app)
+			.get(`/api/equipment/${equipment.body.id}/weather`)
+			.set('Authorization', bearer(adminToken));
 
 		expect(response.status).toBe(200);
 		expect(response.body.equipmentId).toBe(equipment.body.id);
@@ -380,9 +404,9 @@ describe('GET /api/equipment/:id/weather', () => {
 		const fetchMock = vi.fn();
 		vi.stubGlobal('fetch', fetchMock);
 
-		const response = await request(app).get(
-			`/api/equipment/${crypto.randomUUID()}/weather`,
-		);
+		const response = await request(app)
+			.get(`/api/equipment/${crypto.randomUUID()}/weather`)
+			.set('Authorization', bearer(adminToken));
 
 		expect(response.status).toBe(404);
 		expect(fetchMock).not.toHaveBeenCalled();
@@ -392,9 +416,9 @@ describe('GET /api/equipment/:id/weather', () => {
 		const fetchMock = vi.fn();
 		vi.stubGlobal('fetch', fetchMock);
 
-		const response = await request(app).get(
-			'/api/equipment/unknown-id/weather',
-		);
+		const response = await request(app)
+			.get('/api/equipment/unknown-id/weather')
+			.set('Authorization', bearer(adminToken));
 
 		expect(response.status).toBe(422);
 		expect(fetchMock).not.toHaveBeenCalled();
@@ -407,9 +431,9 @@ describe('GET /api/equipment/:id/weather', () => {
 			vi.fn().mockRejectedValue(new TypeError('fetch failed')),
 		);
 
-		const response = await request(app).get(
-			`/api/equipment/${equipment.body.id}/weather`,
-		);
+		const response = await request(app)
+			.get(`/api/equipment/${equipment.body.id}/weather`)
+			.set('Authorization', bearer(adminToken));
 		expect(response.status).toBe(503);
 
 		vi.unstubAllGlobals();
@@ -428,9 +452,9 @@ describe('GET /api/equipment/:id/weather', () => {
 				),
 		);
 
-		const response = await request(app).get(
-			`/api/equipment/${equipment.body.id}/weather`,
-		);
+		const response = await request(app)
+			.get(`/api/equipment/${equipment.body.id}/weather`)
+			.set('Authorization', bearer(adminToken));
 
 		expect(response.status).toBe(503);
 	});
@@ -442,9 +466,9 @@ describe('GET /api/equipment/:id/weather', () => {
 			vi.fn().mockResolvedValue({ ok: false, status: 500 }),
 		);
 
-		const response = await request(app).get(
-			`/api/equipment/${equipment.body.id}/weather`,
-		);
+		const response = await request(app)
+			.get(`/api/equipment/${equipment.body.id}/weather`)
+			.set('Authorization', bearer(adminToken));
 
 		expect(response.status).toBe(503);
 	});

@@ -57,7 +57,7 @@ export class ValidationError extends AppError {
 }
 
 export class UnauthorizedError extends AppError {
-	constructor(message = 'Неверный или отсутствующий API-ключ') {
+	constructor(message = 'Не авторизован') {
 		super(message, { status: 401, code: 'unauthorized' });
 	}
 }

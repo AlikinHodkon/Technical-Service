@@ -13,6 +13,8 @@ import { RequestStatusHistory } from '../../models/request-status-history.model.
 import { RequestStatusLookup } from '../../models/request-status-lookup.model.ts';
 import { Site } from '../../models/site.model.ts';
 import { Technician } from '../../models/technician.model.ts';
+import { User } from '../../models/user.model.ts';
+import { UserRoleLookup } from '../../models/user-role-lookup.model.ts';
 import { logger } from './logger.ts';
 
 const postgresEnvSchema = z.object({
@@ -50,5 +52,7 @@ export const sequelize = new Sequelize({
 		RequestPriorityLookup,
 		RequestStatusLookup,
 		AssigneeRoleLookup,
+		User,
+		UserRoleLookup,
 	],
 });

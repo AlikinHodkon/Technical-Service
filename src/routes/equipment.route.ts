@@ -8,7 +8,7 @@ import {
 	getEquipmentWeather,
 	updateEquipment,
 } from '../controllers/equipment.ts';
-import { apiKeyAuth, validate } from '../middlewares/index.ts';
+import { authenticate, authorize, validate } from '../middlewares/index.ts';
 import { idParamSchema } from '../validators/common.validator.ts';
 import {
 	createEquipmentSchema,
@@ -19,6 +19,8 @@ import { getRequestsQuerySchema } from '../validators/requests.validator.ts';
 
 const router = Router();
 
+router.use(authenticate);
+
 router.get(
 	'/equipment',
 	validate({ query: getEquipmentQuerySchema }),
@@ -26,7 +28,7 @@ router.get(
 );
 router.post(
 	'/equipment',
-	apiKeyAuth,
+	authorize('admin'),
 	validate({ body: createEquipmentSchema }),
 	createEquipment,
 );
@@ -37,13 +39,13 @@ router.get(
 );
 router.patch(
 	'/equipment/:id',
-	apiKeyAuth,
+	authorize('admin'),
 	validate({ params: idParamSchema, body: updateEquipmentSchema }),
 	updateEquipment,
 );
 router.delete(
 	'/equipment/:id',
-	apiKeyAuth,
+	authorize('admin'),
 	validate({ params: idParamSchema }),
 	deleteEquipment,
 );

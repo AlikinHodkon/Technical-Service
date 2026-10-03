@@ -30,8 +30,7 @@ import type {
 	UpdateEquipmentBody,
 } from '../validators/equipment.validator.ts';
 
-// Внешний контракт использует type/status; typeCode/statusCode заняты в
-// модели под belongsTo-ассоциации, поэтому маппинг живёт тут, на границе.
+// см. equipment.validator.ts про type/status -> typeCode/statusCode
 const SORT_FIELD_MAP: Record<string, string> = {
 	type: 'typeCode',
 	status: 'statusCode',

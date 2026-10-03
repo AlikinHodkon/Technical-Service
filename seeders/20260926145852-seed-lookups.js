@@ -25,6 +25,10 @@ module.exports = {
 			'assignee_role_lookup',
 			lookups.assigneeRole.map((code) => ({ code })),
 		);
+		await queryInterface.bulkInsert(
+			'user_role_lookup',
+			lookups.userRole.map((code) => ({ code })),
+		);
 	},
 
 	async down(queryInterface, _Sequelize) {
@@ -33,5 +37,6 @@ module.exports = {
 		await queryInterface.bulkDelete('request_status_lookup', null, {});
 		await queryInterface.bulkDelete('request_priority_lookup', null, {});
 		await queryInterface.bulkDelete('assignee_role_lookup', null, {});
+		await queryInterface.bulkDelete('user_role_lookup', null, {});
 	},
 };
