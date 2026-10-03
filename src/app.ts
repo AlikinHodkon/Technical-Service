@@ -20,6 +20,9 @@ import {
 
 const app = express();
 
+// мы за nginx, доверяем ему один хоп — иначе rate-limit видит не клиента, а сам nginx
+app.set('trust proxy', 1);
+
 app.use(httpLogger);
 app.use(contextMiddleware);
 app.use(helmet());
