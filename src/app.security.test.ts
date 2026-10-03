@@ -7,7 +7,7 @@ import { createRateLimiter } from './middlewares/rateLimiter.ts';
 
 describe('security headers', () => {
 	it('sets helmet protective headers', async () => {
-		const response = await request(app).get('/api/health');
+		const response = await request(app).get('/api/health/live');
 
 		expect(response.headers['x-content-type-options']).toBe('nosniff');
 		expect(response.headers['x-frame-options']).toBe('SAMEORIGIN');
@@ -16,7 +16,7 @@ describe('security headers', () => {
 
 describe('CORS allow-list', () => {
 	it('allows requests without an Origin header', async () => {
-		const response = await request(app).get('/api/health');
+		const response = await request(app).get('/api/health/live');
 
 		expect(response.status).toBe(200);
 	});
