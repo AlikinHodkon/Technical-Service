@@ -1,0 +1,315 @@
+{
+	"panels": [
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "prometheus"
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 12,
+				"x": 0,
+				"y": 0
+			},
+			"id": 1,
+			"targets": [
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "prometheus"
+					},
+					"expr": "sum(rate(http_request_duration_seconds_count[5m]))",
+					"refId": "A"
+				}
+			],
+			"title": "Интенсивность запросов (req/s)",
+			"type": "timeseries"
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "prometheus"
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 12,
+				"x": 12,
+				"y": 0
+			},
+			"id": 2,
+			"targets": [
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "prometheus"
+					},
+					"expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))",
+					"refId": "A"
+				}
+			],
+			"title": "Время ответа p95 (сек)",
+			"type": "timeseries"
+		},
+		{
+			"id": 3,
+			"title": "Доля 5xx",
+			"type": "stat",
+			"gridPos": {
+				"h": 8,
+				"w": 4,
+				"x": 0,
+				"y": 8
+			},
+			"datasource": {
+				"type": "prometheus",
+				"uid": "prometheus"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "percentunit"
+				}
+			},
+			"targets": [
+				{
+					"refId": "A",
+					"expr": "sum(rate(http_request_duration_seconds_count{status_code=~\"5..\"}[5m])) / sum(rate(http_request_duration_seconds_count[5m]))",
+					"datasource": {
+						"type": "prometheus",
+						"uid": "prometheus"
+					}
+				}
+			]
+		},
+		{
+			"id": 10,
+			"title": "Доля 4xx",
+			"type": "stat",
+			"gridPos": {
+				"h": 8,
+				"w": 4,
+				"x": 4,
+				"y": 8
+			},
+			"datasource": {
+				"type": "prometheus",
+				"uid": "prometheus"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"unit": "percentunit"
+				}
+			},
+			"targets": [
+				{
+					"refId": "A",
+					"expr": "sum(rate(http_request_duration_seconds_count{status_code=~\"4..\"}[5m])) / sum(rate(http_request_duration_seconds_count[5m]))",
+					"datasource": {
+						"type": "prometheus",
+						"uid": "prometheus"
+					}
+				}
+			]
+		},
+		{
+			"datasource": {
+				"type": "prometheus",
+				"uid": "prometheus"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"mappings": [
+						{
+							"options": {
+								"0": {
+									"color": "red",
+									"text": "DOWN"
+								},
+								"1": {
+									"color": "green",
+									"text": "UP"
+								}
+							},
+							"type": "value"
+						}
+					]
+				}
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 4,
+				"x": 8,
+				"y": 8
+			},
+			"id": 4,
+			"targets": [
+				{
+					"datasource": {
+						"type": "prometheus",
+						"uid": "prometheus"
+					},
+					"expr": "up{job=\"app\"}",
+					"instant": true,
+					"refId": "A"
+				}
+			],
+			"title": "Доступность сервиса",
+			"type": "stat"
+		},
+		{
+			"datasource": {
+				"type": "postgres",
+				"uid": "postgres"
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 6,
+				"x": 12,
+				"y": 8
+			},
+			"id": 5,
+			"targets": [
+				{
+					"datasource": {
+						"type": "postgres",
+						"uid": "postgres"
+					},
+					"format": "table",
+					"rawSql": "SELECT status_code AS metric, COUNT(*) AS value FROM maintenance_requests GROUP BY status_code ORDER BY status_code",
+					"refId": "A"
+				}
+			],
+			"title": "Заявки по статусам",
+			"type": "bargauge"
+		},
+		{
+			"datasource": {
+				"type": "postgres",
+				"uid": "postgres"
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 6,
+				"x": 18,
+				"y": 8
+			},
+			"id": 6,
+			"targets": [
+				{
+					"datasource": {
+						"type": "postgres",
+						"uid": "postgres"
+					},
+					"format": "table",
+					"rawSql": "SELECT priority_code AS metric, COUNT(*) AS value FROM maintenance_requests GROUP BY priority_code ORDER BY priority_code",
+					"refId": "A"
+				}
+			],
+			"title": "Заявки по приоритетам",
+			"type": "bargauge"
+		},
+		{
+			"datasource": {
+				"type": "postgres",
+				"uid": "postgres"
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 6,
+				"x": 0,
+				"y": 16
+			},
+			"id": 7,
+			"targets": [
+				{
+					"datasource": {
+						"type": "postgres",
+						"uid": "postgres"
+					},
+					"format": "table",
+					"rawSql": "SELECT AVG(EXTRACT(EPOCH FROM (h.changed_at - r.created_at)) / 3600.0) AS avg_hours FROM request_status_history h JOIN maintenance_requests r ON h.request_id = r.id WHERE h.new_status_code IN (SELECT code FROM request_status_lookup WHERE is_terminal)",
+					"refId": "A"
+				}
+			],
+			"title": "Среднее время закрытия заявки (часы)",
+			"type": "stat"
+		},
+		{
+			"datasource": {
+				"type": "postgres",
+				"uid": "postgres"
+			},
+			"fieldConfig": {
+				"defaults": {
+					"thresholds": {
+						"mode": "absolute",
+						"steps": [
+							{
+								"color": "green",
+								"value": null
+							},
+							{
+								"color": "red",
+								"value": 1
+							}
+						]
+					}
+				}
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 6,
+				"x": 6,
+				"y": 16
+			},
+			"id": 8,
+			"targets": [
+				{
+					"datasource": {
+						"type": "postgres",
+						"uid": "postgres"
+					},
+					"format": "table",
+					"rawSql": "SELECT COUNT(*) AS overdue FROM maintenance_requests WHERE planned_at < now() AND status_code NOT IN ('done','rejected')",
+					"refId": "A"
+				}
+			],
+			"title": "Просроченные плановые работы",
+			"type": "stat"
+		},
+		{
+			"datasource": {
+				"type": "postgres",
+				"uid": "postgres"
+			},
+			"gridPos": {
+				"h": 8,
+				"w": 12,
+				"x": 12,
+				"y": 16
+			},
+			"id": 9,
+			"targets": [
+				{
+					"datasource": {
+						"type": "postgres",
+						"uid": "postgres"
+					},
+					"format": "table",
+					"rawSql": "SELECT e.name AS metric, COUNT(mr.id) AS value FROM equipment e LEFT JOIN maintenance_requests mr ON mr.equipment_id = e.id GROUP BY e.id, e.name ORDER BY value DESC",
+					"refId": "A"
+				}
+			],
+			"title": "Нагрузка на оборудование (число заявок)",
+			"type": "bargauge"
+		}
+	],
+	"refresh": "30s",
+	"schemaVersion": 39,
+	"time": {
+		"from": "now-6h",
+		"to": "now"
+	},
+	"timezone": "browser",
+	"title": "Technical Service",
+	"uid": "technical-service"
+}
