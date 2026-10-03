@@ -7,12 +7,14 @@ import {
 	corsMiddleware,
 	errorHandler,
 	httpLogger,
+	metricsMiddleware,
 	rateLimiter,
 } from './middlewares/index.ts';
 import {
 	docsRouter,
 	equipmentRouter,
 	healthRouter,
+	metricsRouter,
 	reportsRouter,
 	requestsRouter,
 	sitesRouter,
@@ -24,6 +26,7 @@ const app = express();
 app.set('trust proxy', 1);
 
 app.use(httpLogger);
+app.use(metricsMiddleware);
 app.use(contextMiddleware);
 app.use(helmet());
 app.use(corsMiddleware);
@@ -37,6 +40,7 @@ app.use('/api', equipmentRouter);
 app.use('/api', requestsRouter);
 app.use('/api', sitesRouter);
 app.use('/api', reportsRouter);
+app.use(metricsRouter);
 app.use('/', () => {
 	throw new NotFoundError('Маршрут');
 });
