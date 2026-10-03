@@ -33,6 +33,9 @@ try {
 const server = app.listen(config.port, () => {
 	logger.info(`Server listening on port ${config.port}`);
 });
+// Больше keepalive_timeout в upstream nginx (60s) — иначе nginx может
+// отправить запрос в simplex-соединение, которое Node уже закрывает.
+server.keepAliveTimeout = 65_000;
 
 for (const signal of ['SIGINT', 'SIGTERM']) {
 	process.on(signal, async () => {

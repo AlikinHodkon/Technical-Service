@@ -1,0 +1,6 @@
+{
+	"type": "about:blank",
+	"title": "Gateway Timeout",
+	"status": 504,
+	"detail": "Сервис не ответил вовремя. Повторите запрос позже."
+}

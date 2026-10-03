@@ -3,6 +3,7 @@ name: tech-service
 services:
   app:
     build: .
+    init: true
     env_file: .env
     labels:
         logging: promtail
@@ -50,12 +51,13 @@ services:
         condition: service_healthy
 
   nginx:
-    image: nginx:alpine
+    image: nginx:1.30-alpine
     ports:
       - "80:80"
       - "443:443"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/errors:/etc/nginx/errors:ro
       - ./nginx/ssl:/etc/nginx/ssl
       - ./nginx/.htpasswd:/etc/nginx/.htpasswd:ro
     depends_on:
