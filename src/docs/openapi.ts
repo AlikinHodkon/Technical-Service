@@ -58,11 +58,23 @@ export const openapiDocument = createDocument({
 	},
 	servers: [{ url: '/api' }],
 	paths: {
-		'/health': {
+		'/health/live': {
 			get: {
-				summary: 'Проверка доступности сервиса',
+				summary: 'Жизнеспособность процесса',
 				responses: {
 					'200': { description: 'OK', ...jsonContent(healthSchema) },
+				},
+			},
+		},
+		'/health/ready': {
+			get: {
+				summary: 'Готовность к обслуживанию (проверяет доступность БД)',
+				responses: {
+					'200': { description: 'OK', ...jsonContent(healthSchema) },
+					'503': {
+						description: 'БД недоступна',
+						...jsonContent(z.object({ status: z.literal('error') })),
+					},
 				},
 			},
 		},
