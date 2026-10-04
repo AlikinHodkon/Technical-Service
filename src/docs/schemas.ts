@@ -196,3 +196,22 @@ export const bulkImportResultSchema = z
 export const healthSchema = z
 	.object({ status: z.literal('ok') })
 	.meta({ id: 'Health' });
+
+export const authUserSchema = z
+	.object({
+		id: z.uuid(),
+		email: z.string(),
+		role: z.enum(['viewer', 'technician', 'admin']),
+	})
+	.meta({ id: 'AuthUser' });
+
+export const loginResponseSchema = z
+	.object({
+		accessToken: z.string(),
+		user: authUserSchema,
+	})
+	.meta({ id: 'LoginResponse' });
+
+export const refreshResponseSchema = z
+	.object({ accessToken: z.string() })
+	.meta({ id: 'RefreshResponse' });
