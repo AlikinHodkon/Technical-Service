@@ -1,5 +1,6 @@
 import * as z from 'zod';
 import { createDocument } from 'zod-openapi';
+import { loginSchema } from '../validators/auth.validator.ts';
 import { idParamSchema } from '../validators/common.validator.ts';
 import {
 	createEquipmentSchema,
@@ -19,14 +20,17 @@ import {
 	updateRequestStatusSchema,
 } from '../validators/requests.validator.ts';
 import {
+	authUserSchema,
 	bulkImportResultSchema,
 	equipmentLoadRowSchema,
 	equipmentSchema,
 	equipmentWeatherSchema,
 	healthSchema,
+	loginResponseSchema,
 	paginatedEquipmentSchema,
 	paginatedRequestsSchema,
 	problemDetailsSchema,
+	refreshResponseSchema,
 	requestAssigneeSchema,
 	requestSchema,
 	requestStatusHistoryEntrySchema,
@@ -57,6 +61,17 @@ export const openapiDocument = createDocument({
 			'Учёт оборудования и заявок на обслуживание. Спецификация собрана из тех же Zod-схем, что валидируют запросы в src/validators.',
 	},
 	servers: [{ url: '/api' }],
+	components: {
+		securitySchemes: {
+			bearerAuth: {
+				type: 'http',
+				scheme: 'bearer',
+				bearerFormat: 'JWT',
+				description:
+					'Access-токен из ответа /auth/login или /auth/refresh, передаётся как Authorization: Bearer <token>',
+			},
+		},
+	},
 	paths: {
 		'/health/live': {
 			get: {
@@ -75,6 +90,71 @@ export const openapiDocument = createDocument({
 						description: 'БД недоступна',
 						...jsonContent(z.object({ status: z.literal('error') })),
 					},
+				},
+			},
+		},
+		'/auth/register': {
+			post: {
+				summary: 'Регистрация пользователя (роль всегда viewer)',
+				responses: {
+					'201': {
+						description: 'Пользователь создан',
+						...jsonContent(authUserSchema),
+					},
+					'409': errorResponse('Email занят'),
+					'422': VALIDATION_FAILED,
+				},
+			},
+		},
+		'/auth/login': {
+			post: {
+				summary: 'Вход: выдаёт access-токен и устанавливает refresh-cookie',
+				requestBody: {
+					content: { 'application/json': { schema: loginSchema } },
+				},
+				responses: {
+					'200': {
+						description: 'Успешный вход',
+						...jsonContent(loginResponseSchema),
+					},
+					'401': UNAUTHORIZED,
+					'422': VALIDATION_FAILED,
+					'429': errorResponse('Слишком много попыток входа'),
+				},
+			},
+		},
+		'/auth/refresh': {
+			post: {
+				summary: 'Обновление access-токена по refresh-cookie',
+				responses: {
+					'200': {
+						description: 'Новый access-токен',
+						...jsonContent(refreshResponseSchema),
+					},
+					'401': UNAUTHORIZED,
+				},
+			},
+		},
+		'/auth/logout': {
+			post: {
+				summary: 'Завершение сессии, отзыв refresh-токена',
+				security: [{ bearerAuth: [] }],
+				responses: {
+					'204': { description: 'Сессия завершена' },
+					'401': UNAUTHORIZED,
+				},
+			},
+		},
+		'/auth/me': {
+			get: {
+				summary: 'Текущий пользователь и его роль',
+				security: [{ bearerAuth: [] }],
+				responses: {
+					'200': {
+						description: 'Текущий пользователь',
+						...jsonContent(authUserSchema),
+					},
+					'401': UNAUTHORIZED,
 				},
 			},
 		},
