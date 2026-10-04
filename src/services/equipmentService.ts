@@ -6,9 +6,7 @@ import {
 	type WhereOptions,
 } from 'sequelize';
 
-// Postgres поднимает RESTRICT-нарушение при удалении родителя с кодом 23001
-// (restrict_violation), а не 23503 (foreign_key_violation) — Sequelize не
-// оборачивает его в ForeignKeyConstraintError, только в общий DatabaseError.
+// RESTRICT даёт код 23001, не 23503 — Sequelize его не оборачивает в ForeignKeyConstraintError.
 const isRestrictViolation = (err: unknown): boolean =>
 	err instanceof DatabaseError &&
 	(err as { original?: { code?: string } }).original?.code === '23001';

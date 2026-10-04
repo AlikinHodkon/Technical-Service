@@ -21,10 +21,7 @@ export const authenticate = (
 	if (!token) return next(new UnauthorizedError('Токен не предоставлен'));
 
 	try {
-		// Только подпись и срок действия — без похода в БД за tokenVersion.
-		// Отзыв (logout/смена пароля) действует с задержкой до истечения
-		// access-токена (15 мин), это сознательный компромисс в пользу
-		// stateless-проверки на каждый запрос; см. README.
+		// Только подпись/срок, без похода в БД — logout отзывает с задержкой до истечения access-токена (см. README).
 		req.user = verifyAccessToken(token);
 		next();
 	} catch {

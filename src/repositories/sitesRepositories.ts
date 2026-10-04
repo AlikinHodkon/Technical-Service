@@ -6,9 +6,7 @@ export const sitesFindById = async (id: string) => {
 	return Site.findByPk(id);
 };
 
-// Кейс 2 не знал о площадках; чтобы не делать siteId обязательным (это сломало
-// бы старый контракт создания оборудования), при отсутствии siteId в запросе
-// оборудование привязывается к этой служебной площадке-заглушке.
+// siteId необязателен (Кейс 2 не знал о площадках) — без него оборудование идёт сюда, в площадку-заглушку.
 export const sitesFindOrCreateUnspecified = async () => {
 	const [site] = await Site.findOrCreate({
 		where: { code: UNSPECIFIED_SITE_CODE },

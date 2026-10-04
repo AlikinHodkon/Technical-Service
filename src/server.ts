@@ -48,13 +48,9 @@ for (const signal of ['SIGINT', 'SIGTERM']) {
 			}
 			process.exit(0);
 		});
-		// close() сам по себе не трогает уже открытые простаивающие
-		// keepalive-соединения — без этого они висят до истечения
-		// keepAliveTimeout (65с) и растягивают выключение без причины.
+		// close() не трогает простаивающие keepalive — без этого висят до своего таймаута (65с).
 		server.closeIdleConnections();
-		// Страховка: если close() никогда не вызовет колбэк (завис запрос
-		// или sequelize.close()), не висеть вечно — выйти с ошибкой раньше,
-		// чем Docker пришлёт SIGKILL (stop_grace_period 30с в compose).
+		// Страховка на случай, если close() зависнет — иначе ждали бы SIGKILL от Docker.
 		setTimeout(() => process.exit(1), 25_000).unref();
 	});
 }

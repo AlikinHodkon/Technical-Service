@@ -14,9 +14,7 @@ import type { LoginBody, RegisterBody } from '../validators/auth.validator.ts';
 
 const REFRESH_COOKIE_NAME = 'refreshToken';
 
-// Фронтенд и API обслуживаются с одного origin через nginx — легитимных
-// кросс-сайтовых запросов с этой cookie нет, поэтому Strict полностью закрывает
-// CSRF, не ломая при этом ни один реальный сценарий использования.
+// Strict безопасен: фронтенд и API на одном origin через nginx, легитимных кросс-сайтовых запросов нет.
 const setRefreshCookie = (res: Response, token: string) => {
 	res.cookie(REFRESH_COOKIE_NAME, token, {
 		httpOnly: true,
