@@ -161,6 +161,7 @@ export const openapiDocument = createDocument({
 		'/equipment': {
 			get: {
 				summary: 'Список оборудования',
+				security: [{ bearerAuth: [] }],
 				requestParams: { query: getEquipmentQuerySchema },
 				responses: {
 					'200': {
@@ -168,10 +169,12 @@ export const openapiDocument = createDocument({
 						...jsonContent(paginatedEquipmentSchema),
 					},
 					'400': BAD_REQUEST,
+					'401': UNAUTHORIZED,
 				},
 			},
 			post: {
 				summary: 'Создать единицу оборудования',
+				security: [{ bearerAuth: [] }],
 				requestBody: {
 					content: { 'application/json': { schema: createEquipmentSchema } },
 				},
@@ -186,18 +189,21 @@ export const openapiDocument = createDocument({
 		'/equipment/{id}': {
 			get: {
 				summary: 'Карточка оборудования',
+				security: [{ bearerAuth: [] }],
 				requestParams: { path: idParamSchema },
 				responses: {
 					'200': {
 						description: 'Оборудование',
 						...jsonContent(equipmentSchema),
 					},
+					'401': UNAUTHORIZED,
 					'404': NOT_FOUND,
 					'422': VALIDATION_FAILED,
 				},
 			},
 			patch: {
 				summary: 'Частичное обновление оборудования',
+				security: [{ bearerAuth: [] }],
 				requestParams: { path: idParamSchema },
 				requestBody: {
 					content: { 'application/json': { schema: updateEquipmentSchema } },
@@ -212,6 +218,7 @@ export const openapiDocument = createDocument({
 			},
 			delete: {
 				summary: 'Удалить единицу оборудования',
+				security: [{ bearerAuth: [] }],
 				requestParams: { path: idParamSchema },
 				responses: {
 					'204': { description: 'Удалено' },
@@ -225,12 +232,14 @@ export const openapiDocument = createDocument({
 		'/equipment/{id}/requests': {
 			get: {
 				summary: 'Заявки по конкретной единице оборудования',
+				security: [{ bearerAuth: [] }],
 				requestParams: { path: idParamSchema, query: getRequestsQuerySchema },
 				responses: {
 					'200': {
 						description: 'Страница списка',
 						...jsonContent(paginatedRequestsSchema),
 					},
+					'401': UNAUTHORIZED,
 					'404': NOT_FOUND,
 					'422': VALIDATION_FAILED,
 				},
@@ -239,12 +248,14 @@ export const openapiDocument = createDocument({
 		'/equipment/{id}/weather': {
 			get: {
 				summary: 'Прогноз погоды по координатам объекта',
+				security: [{ bearerAuth: [] }],
 				requestParams: { path: idParamSchema },
 				responses: {
 					'200': {
 						description: 'Прогноз на 3 дня',
 						...jsonContent(equipmentWeatherSchema),
 					},
+					'401': UNAUTHORIZED,
 					'404': NOT_FOUND,
 					'422': VALIDATION_FAILED,
 					'503': errorResponse('Погодное API недоступно или ответило ошибкой'),
@@ -254,6 +265,7 @@ export const openapiDocument = createDocument({
 		'/requests': {
 			get: {
 				summary: 'Список заявок',
+				security: [{ bearerAuth: [] }],
 				requestParams: { query: getRequestsQuerySchema },
 				responses: {
 					'200': {
@@ -261,10 +273,12 @@ export const openapiDocument = createDocument({
 						...jsonContent(paginatedRequestsSchema),
 					},
 					'400': BAD_REQUEST,
+					'401': UNAUTHORIZED,
 				},
 			},
 			post: {
 				summary: 'Создать заявку',
+				security: [{ bearerAuth: [] }],
 				requestBody: {
 					content: { 'application/json': { schema: createRequestSchema } },
 				},
@@ -279,6 +293,7 @@ export const openapiDocument = createDocument({
 		'/requests/bulk': {
 			post: {
 				summary: 'Массовый импорт заявок с частичным успехом',
+				security: [{ bearerAuth: [] }],
 				requestBody: {
 					content: { 'application/json': { schema: bulkCreateRequestsSchema } },
 				},
@@ -295,15 +310,18 @@ export const openapiDocument = createDocument({
 		'/requests/{id}': {
 			get: {
 				summary: 'Карточка заявки',
+				security: [{ bearerAuth: [] }],
 				requestParams: { path: idParamSchema },
 				responses: {
 					'200': { description: 'Заявка', ...jsonContent(requestSchema) },
+					'401': UNAUTHORIZED,
 					'404': NOT_FOUND,
 					'422': VALIDATION_FAILED,
 				},
 			},
 			patch: {
 				summary: 'Редактирование полей заявки (без смены статуса)',
+				security: [{ bearerAuth: [] }],
 				requestParams: { path: idParamSchema },
 				requestBody: {
 					content: { 'application/json': { schema: updateRequestSchema } },
@@ -317,6 +335,7 @@ export const openapiDocument = createDocument({
 			},
 			delete: {
 				summary: 'Удалить заявку',
+				security: [{ bearerAuth: [] }],
 				requestParams: { path: idParamSchema },
 				responses: {
 					'204': { description: 'Удалено' },
@@ -330,6 +349,7 @@ export const openapiDocument = createDocument({
 		'/requests/{id}/status': {
 			patch: {
 				summary: 'Смена статуса заявки с проверкой допустимости перехода',
+				security: [{ bearerAuth: [] }],
 				requestParams: { path: idParamSchema },
 				requestBody: {
 					content: {
@@ -353,12 +373,14 @@ export const openapiDocument = createDocument({
 		'/requests/{id}/history': {
 			get: {
 				summary: 'История смены статусов заявки',
+				security: [{ bearerAuth: [] }],
 				requestParams: { path: idParamSchema },
 				responses: {
 					'200': {
 						description: 'Список переходов, от старых к новым',
 						...jsonContent(z.array(requestStatusHistoryEntrySchema)),
 					},
+					'401': UNAUTHORIZED,
 					'404': NOT_FOUND,
 					'422': VALIDATION_FAILED,
 				},
@@ -367,6 +389,7 @@ export const openapiDocument = createDocument({
 		'/requests/{id}/assignees': {
 			post: {
 				summary: 'Назначить бригаду на заявку (полностью заменяет список)',
+				security: [{ bearerAuth: [] }],
 				requestParams: { path: idParamSchema },
 				requestBody: {
 					content: {
@@ -387,6 +410,7 @@ export const openapiDocument = createDocument({
 		'/requests/{id}/assignees/{userId}': {
 			delete: {
 				summary: 'Снять специалиста с заявки',
+				security: [{ bearerAuth: [] }],
 				requestParams: { path: requestAssigneeParamsSchema },
 				responses: {
 					'204': { description: 'Удалено' },
@@ -400,9 +424,11 @@ export const openapiDocument = createDocument({
 			get: {
 				summary:
 					'Сводка по площадке: заявки по статусам/приоритетам, среднее время закрытия',
+				security: [{ bearerAuth: [] }],
 				requestParams: { path: idParamSchema },
 				responses: {
 					'200': { description: 'Сводка', ...jsonContent(siteSummarySchema) },
+					'401': UNAUTHORIZED,
 					'404': NOT_FOUND,
 					'422': VALIDATION_FAILED,
 				},
@@ -412,6 +438,7 @@ export const openapiDocument = createDocument({
 			get: {
 				summary:
 					'Нагрузка на оборудование: число заявок, плановые часы, последнее обслуживание',
+				security: [{ bearerAuth: [] }],
 				requestParams: { query: getEquipmentLoadQuerySchema },
 				responses: {
 					'200': {
@@ -419,6 +446,7 @@ export const openapiDocument = createDocument({
 						...jsonContent(z.array(equipmentLoadRowSchema)),
 					},
 					'400': BAD_REQUEST,
+					'401': UNAUTHORIZED,
 				},
 			},
 		},
