@@ -15,6 +15,10 @@ const connection = {
 	username: required('POSTGRES_USER'),
 	password: required('POSTGRES_PASSWORD'),
 	database: required('POSTGRES_DB'),
+	// Без этого db:seed:all не помнит, какие сидеры уже применялись —
+	// повторный запуск (например, при рестарте docker compose) падает
+	// на дублях в справочниках вместо тихого пропуска уже сделанного.
+	seederStorage: 'sequelize',
 };
 
 module.exports = {

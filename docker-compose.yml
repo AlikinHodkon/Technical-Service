@@ -17,7 +17,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      migrate:
+      seed:
         condition: service_completed_successfully
     environment:
       - NODE_ENV=production
@@ -51,6 +51,20 @@ services:
       db:
         condition: service_healthy
 
+  # sequelize-cli отслеживает применённые сидеры в своей служебной таблице
+  # (аналог SequelizeMeta) — повторный docker compose up на уже заполненной
+  # базе просто пропускает уже применённые, не падает и не дублирует данные.
+  seed:
+    build: .
+    command: node node_modules/sequelize-cli/lib/sequelize db:seed:all
+    env_file: .env
+    environment:
+      - NODE_ENV=production
+      - POSTGRES_HOST=db
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
   nginx:
     image: nginx:1.30-alpine
     ports:
@@ -60,7 +74,7 @@ services:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf
       - ./nginx/errors:/etc/nginx/errors:ro
       - ./nginx/ssl:/etc/nginx/ssl
-      - ./nginx/.htpasswd:/etc/nginx/.htpasswd:ro
+      - ./nginx/auth:/etc/nginx/auth:ro
     depends_on:
       app:
         condition: service_healthy

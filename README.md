@@ -59,11 +59,19 @@ pnpm dev
 
 ```bash
 cp .env.example .env
-# самоподписанный сертификат для nginx (см. "Деплой: Docker Compose и Nginx")
+
+# самоподписанный сертификат nginx и basic-auth для /grafana/ — оба на
+# чистом openssl, без дополнительных пакетов (htpasswd из apache2-utils
+# на чистой машине обычно не стоит)
+mkdir -p nginx/ssl nginx/auth
+openssl req -x509 -newkey rsa:2048 -nodes -days 365 \
+  -keyout nginx/ssl/key.pem -out nginx/ssl/cert.pem -subj "/CN=localhost"
+echo "admin:$(openssl passwd -apr1 'ChangeMe123!')" > nginx/auth/htpasswd
+
 docker compose up -d --build
 ```
 
-Поднимается одной командой весь стек: `nginx` (обратный прокси, :80/:443) → `app` → `db` (PostgreSQL) + `migrate` (одноразовый сервис, гонит миграции до старта `app`) + `prometheus`/`grafana`/`loki`/`promtail`/`node-exporter`. Порядок запуска обеспечен `depends_on`/`healthcheck`: `app` не стартует раньше, чем `db` станет healthy и `migrate` завершится успешно; `nginx` — раньше, чем `app` станет healthy. Снаружи опубликованы только `80`/`443` (nginx) — `db` слушает исключительно `127.0.0.1:5432`, `app`/`grafana`/`prometheus`/`loki` вообще не публикуются напрямую. Данные `db` и настройки `grafana` живут в именованных томах (`postgres-data`, `grafana-storage`, `loki-data`) — `docker compose down` (без `-v`) их не трогает.
+Поднимается одной командой весь стек: `nginx` (обратный прокси, :80/:443) → `app` → `db` (PostgreSQL) + `migrate`/`seed` (одноразовые сервисы: миграции, затем демо-данные, оба до старта `app`) + `prometheus`/`grafana`/`loki`/`promtail`/`node-exporter`. Порядок запуска обеспечен `depends_on`/`healthcheck`: `app` не стартует раньше, чем `db` станет healthy и `seed` завершится успешно (а он сам ждёт `migrate`); `nginx` — раньше, чем `app` станет healthy. `seed` безопасно гонять повторно (например, при рестарте стека) — уже применённые сидеры не дублируются (`seederStorage: 'sequelize'` в `config/config.js`, проверено вручную тройным подряд `docker compose up`). Снаружи опубликованы только `80`/`443` (nginx) — `db` слушает исключительно `127.0.0.1:5432`, `app`/`grafana`/`prometheus`/`loki` вообще не публикуются напрямую. Данные `db` и настройки `grafana` живут в именованных томах (`postgres-data`, `grafana-storage`, `loki-data`) — `docker compose down` (без `-v`) их не трогает.
 
 Контейнер приложения всегда стартует с `NODE_ENV=production` (задано в `docker-compose.yml`, поверх значения из `.env`) — отключает цветной dev-лог и скрывает внутренние детали ошибок в ответах API. Образ (`Dockerfile`) собирается в две стадии: зависимости ставятся отдельным кэшируемым слоем, в финальном образе нет `pnpm`/dev-зависимостей, процесс работает от непривилегированного пользователя `node`, а не от root.
 
@@ -641,7 +649,8 @@ Planning Time: 2.728 ms  Execution Time: 0.242 ms
 |---|---|
 | `nginx` | обратный прокси, единственная точка входа снаружи (`80`/`443`) |
 | `app` | само приложение |
-| `migrate` | одноразовый сервис — гонит `sequelize db:migrate` и завершается; `app` стартует только после его успешного завершения (`depends_on: condition: service_completed_successfully`) |
+| `migrate` | одноразовый сервис — гонит `sequelize db:migrate` и завершается |
+| `seed` | одноразовый сервис после `migrate` — наполняет демо-данными (`sequelize db:seed:all`); `app` стартует только после его успешного завершения |
 | `db` | PostgreSQL, порт пробрасывается только на `127.0.0.1:5432` (не снаружи) |
 | `prometheus`, `node-exporter` | сбор метрик приложения и хоста |
 | `grafana` | дашборды, источники данных и алертинг — всё через provisioning |
@@ -655,9 +664,9 @@ Planning Time: 2.728 ms  Execution Time: 0.242 ms
 - Таймауты проксирования, `client_max_body_size 200k` (согласовано с лимитом `express.json()` в приложении — nginx не должен пропускать то, что оно и так отклонит), `gzip` на JSON-ответах.
 - `upstream` объявлен с `resolve`/`zone`/`resolver 127.0.0.11` — без этого nginx резолвит контейнер `app` в IP один раз при своём старте и после пересоздания контейнера (`docker compose up -d --build app`) продолжал бы стучаться на старый адрес, отвечая `502` до собственного перезапуска. Проверено вживую: пересоздан только `app` (новый IP), `nginx` без перезапуска продолжил проксировать корректно.
 - **Кэширование** — на дорогих read-only отчётах (`/api/reports/*`, `/api/sites/*/summary`), 30 секунд (протухание по времени — осознанная стратегия инвалидации, не обойдённый вопрос). Не распространяется на `/api/equipment`/`/api/requests` — они меняются слишком часто, чтобы оправдать риск отдать устаревшие данные. Ключ кэша включает `Authorization` — без этого второй клиент с чужим или отсутствующим токеном получил бы закэшированный ответ **в обход проверки аутентификации** (она происходит в приложении, которое кэш-хит не доходит). Проверено вживую: первый запрос — `MISS`, повтор тем же токеном — `HIT`, запрос без токена/с чужим токеном даже после прогретого кэша — честный `401`, не закэшированные данные.
-- Маршрутизация по `location`: `/api/` → приложение, `/metrics` → приложение, но только с приватных адресов (`allow 172.16.0.0/12; allow 127.0.0.1; deny all`), `/grafana/` → Grafana за Basic Auth (`nginx/.htpasswd`, не в репозитории), всё остальное — `404`.
+- Маршрутизация по `location`: `/api/` → приложение, `/metrics` → приложение, но только с приватных адресов (`allow 172.16.0.0/12; allow 127.0.0.1; deny all`), `/grafana/` → Grafana за Basic Auth (`nginx/auth/htpasswd`, не в репозитории), всё остальное — `404`.
 - Неизвестный хост/левый SNI на `443` — молчаливый обрыв соединения (`ssl_reject_handshake on`), а не ответ сервера по умолчанию.
-- TLS-сертификат — самоподписанный для локального/учебного стенда: `nginx/ssl/{cert.pem,key.pem}` (не в репозитории, генерируются один раз, напр. `openssl req -x509 -newkey rsa:2048 -nodes -keyout nginx/ssl/key.pem -out nginx/ssl/cert.pem -days 365 -subj "/CN=localhost"`); `nginx/.htpasswd` — так же, `htpasswd -c nginx/.htpasswd admin`.
+- TLS-сертификат и Basic Auth для Grafana — не в репозитории (`nginx/ssl/`, `nginx/auth/` в `.gitignore`), генерируются один раз перед первым запуском, команды — в разделе [Установка и запуск](#установка-и-запуск) выше. Оба — через `openssl`, намеренно без `htpasswd` (пакет `apache2-utils`), которого на чистой машине может не быть.
 
 ### Мониторинг: Prometheus, Grafana, Loki
 
