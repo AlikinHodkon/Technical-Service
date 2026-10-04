@@ -12,11 +12,7 @@ const SORTABLE_FIELDS = [
 	'installedAt',
 ] as const;
 
-// Внешний контракт Кейса 2 сохраняется: поля называются type/status, siteId
-// необязательное (площадок в Кейсе 2 не было). Внутри сервисы/репозитории
-// работают с typeCode/statusCode — эти имена заняты под belongsTo-ассоциации
-// в моделях (Equipment.type -> EquipmentTypeLookup), поэтому переименование
-// происходит в equipmentService, а не в схеме/модели.
+// type/status наружу; typeCode/statusCode внутри — имена заняты под belongsTo в моделях.
 const equipmentBaseSchema = z.object({
 	siteId: z.uuid().optional(),
 	name: z.string().min(3).max(100),

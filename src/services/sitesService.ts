@@ -13,11 +13,7 @@ export const sitesServiceGetSummary = async (siteId: string) => {
 	const site = await sitesFindById(siteId);
 	if (!site) throw new NotFoundError('Площадка', 'не найдена');
 
-	// Атрибуты передаём простой строкой (не парой [expr, alias]) — иначе
-	// Sequelize вставляет camelCase-имя как сырой SQL-литерал вместо маппинга
-	// через underscored-имя реальной колонки (проверено вручную на реальной
-	// БД: [['statusCode','code'],...] падает с "column ...statusCode does not
-	// exist", а group по алиасу из SELECT-листа — штатное поведение Postgres).
+	// Атрибут строкой, не [expr, alias] — иначе Sequelize шлёт camelCase-алиас как сырой SQL (проверено: падает).
 	const [byStatusRows, byPriorityRows, terminalLookups] = await Promise.all([
 		MaintenanceRequest.findAll({
 			attributes: [
@@ -45,11 +41,7 @@ export const sitesServiceGetSummary = async (siteId: string) => {
 
 	const terminalCodes = terminalLookups.map((lookup) => lookup.code);
 
-	// Считаем среднее время закрытия в JS, а не одним общим SQL-запросом с
-	// group+AVG: второй include (через RequestStatusHistory) размножил бы
-	// строки maintenance_requests и исказил бы byStatus/byPriority, если бы
-	// жил в том же запросе. Отдельный плоский список пар
-	// (createdAt заявки, changedAt терминального перехода) считается безопасно.
+	// Среднее считаем в JS, не SQL-AVG — второй include размножил бы строки и исказил byStatus/byPriority.
 	const closedTransitions =
 		terminalCodes.length === 0
 			? []

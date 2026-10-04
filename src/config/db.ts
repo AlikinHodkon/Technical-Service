@@ -27,9 +27,7 @@ const postgresEnvSchema = z.object({
 
 const env = postgresEnvSchema.parse(process.env);
 
-// Рантайм коннектится ограниченной ролью app_user (см. миграцию
-// create-app-role-and-grants), а не POSTGRES_USER — тот остаётся владельцем
-// схемы и используется только для миграций (config/config.json).
+// app_user — ограниченная роль рантайма; POSTGRES_USER (владелец схемы) — только для миграций.
 export const sequelize = new Sequelize({
 	dialect: 'postgres',
 	host: env.POSTGRES_HOST,

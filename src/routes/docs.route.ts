@@ -7,10 +7,7 @@ const router = Router();
 
 router.get('/openapi.json', (_req, res) => res.json(openapiDocument));
 
-// swagger-ui-express рендерит страницу с инлайн-<script>, который
-// инициализирует SwaggerUIBundle — глобальный helmet() выше по цепочке
-// ставит CSP script-src 'self' без 'unsafe-inline' и блокирует его.
-// Снимаем CSP только для /api/docs, остальные маршруты не затрагиваются.
+// Глобальный helmet() блокирует инлайн-<script> Swagger UI — снимаем CSP только здесь.
 router.use(
 	'/docs',
 	(_req: Request, res: Response, next: NextFunction) => {

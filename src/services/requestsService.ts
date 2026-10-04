@@ -115,10 +115,7 @@ export const requestsServiceUpdateStatus = async (
 	actor: { role: string; technicianId: string | null },
 ) => {
 	return sequelize.transaction(async (t) => {
-		// Лочим саму строку заявки без include — Postgres не разрешает
-		// FOR UPDATE вместе с LEFT JOIN на BelongsToMany (нулевая сторона
-		// внешнего джойна), поэтому число исполнителей считаем отдельным
-		// запросом в той же транзакции.
+		// Без include — Postgres не разрешает FOR UPDATE с LEFT JOIN; исполнителей считаем отдельным запросом.
 		const current = await MaintenanceRequest.findByPk(id, {
 			transaction: t,
 			lock: t.LOCK.UPDATE,

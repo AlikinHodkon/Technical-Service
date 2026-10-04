@@ -5,12 +5,8 @@ import { Technician } from '../../models/technician.model.ts';
 import { User } from '../../models/user.model.ts';
 import { sequelize } from '../config/db.ts';
 
-// app_user намеренно не может UPDATE/DELETE request_status_history (см.
-// миграцию create-app-role-and-grants — история неизменяема), поэтому здесь
-// её не трогаем напрямую: request_assignees и request_status_history оба
-// объявлены с ON DELETE CASCADE на maintenance_requests.id, так что удаление
-// заявок каскадно подчищает и то, и другое. Аналогично equipment_passports
-// каскадно уходит вместе с equipment.
+// request_status_history/request_assignees/equipment_passports не чистим напрямую —
+// ON DELETE CASCADE на родителей (app_user и так не может писать в историю).
 export const resetDb = async () => {
 	const dbName = sequelize.getDatabaseName();
 	if (!dbName.includes('test')) {

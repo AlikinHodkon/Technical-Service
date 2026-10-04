@@ -48,5 +48,9 @@ for (const signal of ['SIGINT', 'SIGTERM']) {
 			}
 			process.exit(0);
 		});
+		// close() не трогает простаивающие keepalive — без этого висят до своего таймаута (65с).
+		server.closeIdleConnections();
+		// Страховка на случай, если close() зависнет — иначе ждали бы SIGKILL от Docker.
+		setTimeout(() => process.exit(1), 25_000).unref();
 	});
 }
